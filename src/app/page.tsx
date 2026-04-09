@@ -13,12 +13,12 @@ export default function Home() {
       <nav className="absolute top-0 w-full z-50 flex items-center justify-between px-8 py-6 max-w-7xl mx-auto left-0 right-0">
         <BrandLogo />
         <div className="hidden sm:flex items-center gap-6 text-sm font-medium text-slate-300">
-          <Link
+          {/* <Link
             href="/game"
             className="hover:text-emerald-400 text-slate-300 transition-colors cursor-pointer"
           >
             Game
-          </Link>
+          </Link> */}
           <Link
             href="/leaderboard"
             className="hover:text-pink-400 text-slate-300 transition-colors cursor-pointer"
