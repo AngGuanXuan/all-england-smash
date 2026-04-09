@@ -3,6 +3,7 @@
 import { useRef, useEffect, useCallback, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import BrandLogo from "@/components/BrandLogo";
 import { saveMatch } from "../../actions";
 
 /* ─────────────────────── constants ─────────────────────── */
@@ -774,8 +775,9 @@ export default function GamePage() {
       {(!started || overlay.show) && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-6 rounded-3xl bg-slate-900/80 px-12 py-10 shadow-2xl border border-slate-700/50 max-w-sm w-full">
+            <BrandLogo hideText className="scale-125 mb-4" />
             <h1 className="text-3xl font-bold tracking-tight text-white text-center">
-              {overlay.show ? overlay.winner : "All England Smash 🏸"}
+              {overlay.show ? overlay.winner : "All England Smash"}
             </h1>
 
             {overlay.show && (

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import BrandLogo from "@/components/BrandLogo";
 import { getMatches } from "../actions";
 import { randomUUID } from "crypto";
 
@@ -15,13 +16,8 @@ export default async function LobbyPage() {
       {/* Main Content Container */}
       <div className="relative z-10 w-full max-w-4xl mt-16 flex flex-col gap-12">
         {/* Header Section */}
-        <div className="text-center">
-          <Link
-            href="/"
-            className="text-slate-400 hover:text-white transition-colors text-sm mb-4 inline-block tracking-wide"
-          >
-            ← Back to Home
-          </Link>
+        <div className="flex flex-col items-center">
+          <BrandLogo className="mb-8" />
           <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300 drop-shadow-sm mb-4">
             Game Lobby
           </h1>

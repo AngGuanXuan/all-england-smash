@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import BrandLogo from "@/components/BrandLogo";
 
 export default function Home() {
   return (
@@ -10,21 +11,20 @@ export default function Home() {
 
       {/* Navigation (minimal) */}
       <nav className="absolute top-0 w-full z-50 flex items-center justify-between px-8 py-6 max-w-7xl mx-auto left-0 right-0">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-pink-500 flex items-center justify-center">
-            <span className="text-white font-bold text-lg leading-none">A</span>
-          </div>
-          <span className="text-white font-semibold tracking-wide">
-            All England Smash
-          </span>
-        </div>
+        <BrandLogo />
         <div className="hidden sm:flex items-center gap-6 text-sm font-medium text-slate-300">
-          <span className="text-emerald-400 transition-colors cursor-pointer">
+          <Link
+            href="/game"
+            className="hover:text-emerald-400 text-slate-300 transition-colors cursor-pointer"
+          >
             Game
-          </span>
-          <span className="hover:text-pink-400 transition-colors cursor-pointer">
+          </Link>
+          <Link
+            href="/leaderboard"
+            className="hover:text-pink-400 text-slate-300 transition-colors cursor-pointer"
+          >
             Leaderboard
-          </span>
+          </Link>
         </div>
       </nav>
 
@@ -79,14 +79,14 @@ export default function Home() {
               </svg>
             </span>
           </Link>
-          <a
+          {/* <a
             href="https://github.com"
             target="_blank"
             rel="noreferrer"
             className="px-8 py-4 rounded-full bg-white/5 border border-white/10 text-white font-semibold text-lg hover:bg-white/10 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
           >
             View Source
-          </a>
+          </a> */}
         </div>
 
         {/* Features & Hero Image Container */}
