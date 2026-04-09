@@ -69,8 +69,12 @@ export default async function LeaderboardPage() {
                 <div key={match.id} className="flex justify-between items-center bg-slate-800/40 p-4 rounded-xl border border-slate-700/30">
                   <div className="flex items-center gap-4">
                     <span className="text-xs font-mono text-slate-500">#{match.id}</span>
-                    <span className={`px-3 py-1 text-xs font-bold rounded-lg ${match.winner === 'Player' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-pink-500/20 text-pink-300'}`}>
-                      {match.winner} Dominance
+                    <span className={`px-3 py-1 text-xs font-bold rounded-lg ${
+                      Math.abs(match.playerScore - match.aiScore) <= 2 
+                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/20' 
+                        : (match.winner === 'Player' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-pink-500/20 text-pink-300')
+                    }`}>
+                      {Math.abs(match.playerScore - match.aiScore) <= 2 ? 'Close Game' : `${match.winner} Dominance`}
                     </span>
                   </div>
                   <div className="text-xl font-black tracking-widest">
