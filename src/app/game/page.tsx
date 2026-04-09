@@ -16,7 +16,10 @@ export default async function LobbyPage() {
       <div className="relative z-10 w-full max-w-4xl mt-16 flex flex-col gap-12">
         {/* Header Section */}
         <div className="text-center">
-          <Link href="/" className="text-slate-400 hover:text-white transition-colors text-sm mb-4 inline-block tracking-wide">
+          <Link
+            href="/"
+            className="text-slate-400 hover:text-white transition-colors text-sm mb-4 inline-block tracking-wide"
+          >
             ← Back to Home
           </Link>
           <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300 drop-shadow-sm mb-4">
@@ -41,8 +44,19 @@ export default async function LobbyPage() {
         <div className="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-xl shadow-2xl">
           <h2 className="text-2xl font-bold text-slate-100 mb-6 flex items-center gap-3">
             <span className="w-8 h-8 rounded-full bg-pink-500/20 flex items-center justify-center text-pink-400 border border-pink-500/30">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+                className="w-4 h-4"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                />
               </svg>
             </span>
             Match History
@@ -50,7 +64,9 @@ export default async function LobbyPage() {
 
           {matches.length === 0 ? (
             <div className="text-center py-12 border-2 border-dashed border-white/10 rounded-2xl">
-              <p className="text-slate-500">No matches played yet. Step onto the court first!</p>
+              <p className="text-slate-500">
+                No matches played yet. Step onto the court first!
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -59,37 +75,51 @@ export default async function LobbyPage() {
                   <tr className="border-b border-white/10 text-slate-400 text-sm tracking-wide">
                     <th className="pb-4 font-medium pl-4">Match ID</th>
                     <th className="pb-4 font-medium">Winner</th>
-                    <th className="pb-4 font-medium text-center">Score (You - AI)</th>
+                    <th className="pb-4 font-medium text-center">
+                      Score (You - AI)
+                    </th>
                     <th className="pb-4 font-medium text-right pr-4">Date</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 text-sm">
                   {matches.map((match) => (
-                    <tr key={match.id} className="hover:bg-white/5 transition-colors group">
+                    <tr
+                      key={match.id}
+                      className="hover:bg-white/5 transition-colors group"
+                    >
                       <td className="py-4 pl-4 text-slate-300 pointer-events-none group-hover:text-white transition-colors">
                         #{match.id}
                       </td>
                       <td className="py-4">
-                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                          match.winner === "Player" 
-                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/20" 
-                            : "bg-pink-500/20 text-pink-300 border border-pink-500/20"
-                        }`}>
-                          {match.winner === "Player" ? "🏆 You" : "🤖 AI"}
+                        <span
+                          className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                            match.winner === "Player"
+                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/20"
+                              : "bg-pink-500/20 text-pink-300 border border-pink-500/20"
+                          }`}
+                        >
+                          {match.winner === "Player" ? "🏆 Player" : "🤖 AI"}
                         </span>
                       </td>
                       <td className="py-4 text-center">
-                        <span className="font-bold text-emerald-400">{match.playerScore}</span>
+                        <span className="font-bold text-emerald-400">
+                          {match.playerScore}
+                        </span>
                         <span className="text-slate-600 mx-2">—</span>
-                        <span className="font-bold text-pink-400">{match.aiScore}</span>
+                        <span className="font-bold text-pink-400">
+                          {match.aiScore}
+                        </span>
                       </td>
                       <td className="py-4 text-right pr-4 text-slate-500">
-                        {new Date(match.timestamp).toLocaleDateString(undefined, { 
-                          month: 'short', 
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute:'2-digit'
-                        })}
+                        {new Date(match.timestamp).toLocaleDateString(
+                          undefined,
+                          {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          },
+                        )}
                       </td>
                     </tr>
                   ))}

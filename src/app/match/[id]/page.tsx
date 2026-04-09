@@ -191,8 +191,8 @@ function update(s: GameState, keys: Set<string>) {
   if (sh.active && keys.has(" ") && p.hitCooldown === 0) {
     p.isHitting = true;
     p.hitCooldown = 20;
-    // check shuttle in range
-    if (dist({ x: p.x, y: p.y }, { x: sh.x, y: sh.y }) < HIT_RANGE) {
+    // check shuttle in range and ensure they haven't hit it consecutively
+    if (sh.lastHitBy !== "player" && dist({ x: p.x, y: p.y }, { x: sh.x, y: sh.y }) < HIT_RANGE) {
       sh.vx = HIT_POWER_X + Math.random() * 2;
       sh.vy = HIT_POWER_Y - Math.random() * 2;
       sh.lastHitBy = "player";
@@ -225,6 +225,7 @@ function update(s: GameState, keys: Set<string>) {
     ai.hitCooldown = Math.max(0, ai.hitCooldown - 1);
     if (
       ai.hitCooldown === 0 &&
+      sh.lastHitBy !== "ai" &&
       dist({ x: ai.x, y: ai.y }, { x: sh.x, y: sh.y }) < HIT_RANGE
     ) {
       ai.isHitting = true;
