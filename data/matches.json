@@ -1,1 +1,51 @@
-[]
+[
+  {
+    "id": "c82626e7",
+    "playerScore": 11,
+    "aiScore": 0,
+    "winner": "Player",
+    "timestamp": "2026-04-09T07:18:53.338Z"
+  },
+  {
+    "id": "8a7d2571",
+    "playerScore": 7,
+    "aiScore": 11,
+    "winner": "AI",
+    "timestamp": "2026-04-09T07:16:00.064Z"
+  },
+  {
+    "id": "dbedf173",
+    "playerScore": 11,
+    "aiScore": 10,
+    "winner": "Player",
+    "timestamp": "2026-04-09T07:13:10.071Z"
+  },
+  {
+    "id": "ac852d7e",
+    "playerScore": 11,
+    "aiScore": 4,
+    "winner": "Player",
+    "timestamp": "2026-04-09T07:12:06.664Z"
+  },
+  {
+    "id": "2ee03490",
+    "playerScore": 11,
+    "aiScore": 2,
+    "winner": "Player",
+    "timestamp": "2026-04-09T07:11:12.138Z"
+  },
+  {
+    "id": "622aa491",
+    "playerScore": 11,
+    "aiScore": 3,
+    "winner": "Player",
+    "timestamp": "2026-04-09T06:43:19.320Z"
+  },
+  {
+    "id": "a453b8f1",
+    "playerScore": 11,
+    "aiScore": 2,
+    "winner": "Player",
+    "timestamp": "2026-04-09T06:42:32.288Z"
+  }
+]
