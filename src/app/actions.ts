@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import type { Match } from "@prisma/client";
 import prisma from "@/lib/prisma";
 
@@ -47,6 +48,7 @@ export async function saveMatch(match: MatchData): Promise<boolean> {
         timestamp: new Date(match.timestamp),
       },
     });
+    revalidatePath("/", "layout");
     return true;
   } catch (error) {
     console.error("Error saving match to DB:", error);
