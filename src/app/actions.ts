@@ -1,6 +1,6 @@
 "use server";
 
-import { Match } from "@/generated/prisma";
+import type { Match } from "@prisma/client";
 import prisma from "@/lib/prisma";
 
 export interface MatchData {
@@ -18,8 +18,8 @@ export async function getMatches(): Promise<MatchData[]> {
     });
     return matches.map((match: Match) => ({
       id: match.id,
-      playerScore: match.playerScore,
-      aiScore: match.aiScore,
+      playerScore: Number(match.playerScore),
+      aiScore: Number(match.aiScore),
       winner: match.winner,
       timestamp: match.timestamp.toISOString(),
     }));
