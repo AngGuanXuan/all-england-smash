@@ -1,7 +1,7 @@
 "use server";
 
+import { Match } from "@/generated/prisma";
 import prisma from "@/lib/prisma";
-import type { Match } from "@prisma/client";
 
 export interface MatchData {
   id: string;
