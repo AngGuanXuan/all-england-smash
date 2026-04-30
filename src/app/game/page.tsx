@@ -1,11 +1,13 @@
 import Link from "next/link";
 import BrandLogo from "@/components/BrandLogo";
 import { getMatches } from "../actions";
-import { randomUUID } from "crypto";
+import { randomBytes } from "crypto";
+
+export const dynamic = "force-dynamic";
 
 export default async function LobbyPage() {
   const matches = await getMatches();
-  const nextMatchId = randomUUID().slice(0, 8);
+  const nextMatchId = randomBytes(12).toString("hex");
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-slate-200 p-8 flex flex-col items-center select-none font-sans relative overflow-hidden">

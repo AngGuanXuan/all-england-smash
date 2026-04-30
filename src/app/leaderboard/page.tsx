@@ -1,20 +1,25 @@
 import BrandLogo from "@/components/BrandLogo";
 import { getMatches } from "../actions";
 
+export const dynamic = "force-dynamic";
+
 export default async function LeaderboardPage() {
   const matches = await getMatches();
-  
+
   const totalMatches = matches.length;
-  const playerWins = matches.filter(m => m.winner === "Player").length;
+  const playerWins = matches.filter((m) => m.winner === "Player").length;
   const aiWins = totalMatches - playerWins;
-  const winRate = totalMatches > 0 ? Math.round((playerWins / totalMatches) * 100) : 0;
+  const winRate =
+    totalMatches > 0 ? Math.round((playerWins / totalMatches) * 100) : 0;
 
   // Most severe beatdowns
-  const highestDifferential = [...matches].sort((a, b) => {
-    const aDiff = Math.abs(a.playerScore - a.aiScore);
-    const bDiff = Math.abs(b.playerScore - b.aiScore);
-    return bDiff - aDiff;
-  }).slice(0, 5);
+  const highestDifferential = [...matches]
+    .sort((a, b) => {
+      const aDiff = Math.abs(a.playerScore - a.aiScore);
+      const bDiff = Math.abs(b.playerScore - b.aiScore);
+      return bDiff - aDiff;
+    })
+    .slice(0, 5);
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-200 p-8 flex flex-col items-center">
@@ -36,24 +41,42 @@ export default async function LeaderboardPage() {
         {/* Highlight Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-slate-800/50 border border-slate-700/50 rounded-3xl p-6 flex flex-col items-center justify-center backdrop-blur-sm">
-            <span className="text-slate-400 text-sm font-semibold tracking-widest uppercase mb-2">Humanity Wins</span>
-            <span className="text-4xl font-black text-emerald-400">{playerWins}</span>
+            <span className="text-slate-400 text-sm font-semibold tracking-widest uppercase mb-2">
+              Humanity Wins
+            </span>
+            <span className="text-4xl font-black text-emerald-400">
+              {playerWins}
+            </span>
           </div>
           <div className="bg-slate-800/50 border border-slate-700/50 rounded-3xl p-6 flex flex-col items-center justify-center backdrop-blur-sm">
-            <span className="text-slate-400 text-sm font-semibold tracking-widest uppercase mb-2">Total Matches</span>
-            <span className="text-4xl font-black text-white">{totalMatches}</span>
+            <span className="text-slate-400 text-sm font-semibold tracking-widest uppercase mb-2">
+              Total Matches
+            </span>
+            <span className="text-4xl font-black text-white">
+              {totalMatches}
+            </span>
           </div>
           <div className="bg-slate-800/50 border border-slate-700/50 rounded-3xl p-6 flex flex-col items-center justify-center backdrop-blur-sm">
-            <span className="text-slate-400 text-sm font-semibold tracking-widest uppercase mb-2">AI Overlord Wins</span>
+            <span className="text-slate-400 text-sm font-semibold tracking-widest uppercase mb-2">
+              AI Overlord Wins
+            </span>
             <span className="text-4xl font-black text-pink-400">{aiWins}</span>
           </div>
         </div>
 
         <div className="bg-slate-800/50 border border-slate-700/50 box-border w-full rounded-full h-4 overflow-hidden flex relative">
-          <div className="bg-emerald-500 h-full transition-all duration-1000" style={{ width: `${winRate}%` }} />
-          <div className="bg-pink-500 h-full transition-all duration-1000" style={{ width: `${100 - winRate}%` }} />
+          <div
+            className="bg-emerald-500 h-full transition-all duration-1000"
+            style={{ width: `${winRate}%` }}
+          />
+          <div
+            className="bg-pink-500 h-full transition-all duration-1000"
+            style={{ width: `${100 - winRate}%` }}
+          />
         </div>
-        <p className="text-center text-sm text-slate-500 mt-[-1rem]">Global Win Rate: {winRate}%</p>
+        <p className="text-center text-sm text-slate-500 mt-[-1rem]">
+          Global Win Rate: {winRate}%
+        </p>
 
         {/* Most Decisive Victories */}
         {highestDifferential.length > 0 && (
@@ -65,20 +88,33 @@ export default async function LeaderboardPage() {
               Decisive Victories
             </h2>
             <div className="grid grid-cols-1 gap-4">
-              {highestDifferential.map(match => (
-                <div key={match.id} className="flex justify-between items-center bg-slate-800/40 p-4 rounded-xl border border-slate-700/30">
+              {highestDifferential.map((match) => (
+                <div
+                  key={match.id}
+                  className="flex justify-between items-center bg-slate-800/40 p-4 rounded-xl border border-slate-700/30"
+                >
                   <div className="flex items-center gap-4">
-                    <span className="text-xs font-mono text-slate-500">#{match.id}</span>
-                    <span className={`px-3 py-1 text-xs font-bold rounded-lg ${
-                      Math.abs(match.playerScore - match.aiScore) <= 2 
-                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/20' 
-                        : (match.winner === 'Player' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-pink-500/20 text-pink-300')
-                    }`}>
-                      {Math.abs(match.playerScore - match.aiScore) <= 2 ? 'Close Game' : `${match.winner} Dominance`}
+                    <span className="text-xs font-mono text-slate-500">
+                      #{match.id}
+                    </span>
+                    <span
+                      className={`px-3 py-1 text-xs font-bold rounded-lg ${
+                        Math.abs(match.playerScore - match.aiScore) <= 2
+                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/20"
+                          : match.winner === "Player"
+                            ? "bg-emerald-500/20 text-emerald-300"
+                            : "bg-pink-500/20 text-pink-300"
+                      }`}
+                    >
+                      {Math.abs(match.playerScore - match.aiScore) <= 2
+                        ? "Close Game"
+                        : `${match.winner} Dominance`}
                     </span>
                   </div>
                   <div className="text-xl font-black tracking-widest">
-                    <span className="text-emerald-400">{match.playerScore}</span>
+                    <span className="text-emerald-400">
+                      {match.playerScore}
+                    </span>
                     <span className="text-slate-600 mx-2">-</span>
                     <span className="text-pink-400">{match.aiScore}</span>
                   </div>
