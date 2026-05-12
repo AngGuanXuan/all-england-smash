@@ -32,12 +32,6 @@ export default function Navbar() {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
             <Link
-              href="/game"
-              className="text-sm font-medium text-white/70 hover:text-white transition-colors"
-            >
-              Play
-            </Link>
-            <Link
               href="/leaderboard"
               className="text-sm font-medium text-white/70 hover:text-white transition-colors"
             >
