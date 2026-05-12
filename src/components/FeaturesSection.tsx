@@ -117,17 +117,6 @@ export default function FeaturesSection() {
               {/* Overlay Content */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
-                  <motion.div
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    whileInView={{ scale: 1, opacity: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.6, delay: 0.3 }}
-                    className="glass inline-flex items-center justify-center w-24 h-24 rounded-full mb-6 cursor-pointer hover:scale-110 transition-transform"
-                  >
-                    <svg className="h-10 w-10 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  </motion.div>
                   <h3 className="text-2xl sm:text-3xl font-bold text-white mb-2">
                     Experience the Arena
                   </h3>
