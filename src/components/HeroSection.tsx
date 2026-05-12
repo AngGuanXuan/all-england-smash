@@ -16,8 +16,8 @@ export default function HeroSection() {
           className="h-full w-full object-cover"
           poster="/hero.png"
         >
-          <source
-            src="https://videos.pexels.com/video-files/6004540/6004540-hd_1920_1080_25fps.mp4"
+<source
+            src="https://videos.pexels.com/video-files/35087074/35087074-hd_1920_1080_25fps.mp4"
             type="video/mp4"
           />
         </video>
