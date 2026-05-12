@@ -23,9 +23,8 @@ export default function Navbar() {
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.1 }}
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled ? "glass py-4" : "py-6"
-        }`}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "glass py-4" : "py-6"
+          }`}
       >
         <div className="mx-auto max-w-7xl px-6 flex items-center justify-between">
           <BrandLogo />
@@ -60,19 +59,16 @@ export default function Navbar() {
           >
             <div className="flex flex-col gap-1.5">
               <span
-                className={`block w-6 h-0.5 bg-white transition-all duration-300 ${
-                  mobileMenuOpen ? "rotate-45 translate-y-2" : ""
-                }`}
+                className={`block w-6 h-0.5 bg-white transition-all duration-300 ${mobileMenuOpen ? "rotate-45 translate-y-2" : ""
+                  }`}
               />
               <span
-                className={`block w-6 h-0.5 bg-white transition-all duration-300 ${
-                  mobileMenuOpen ? "opacity-0" : ""
-                }`}
+                className={`block w-6 h-0.5 bg-white transition-all duration-300 ${mobileMenuOpen ? "opacity-0" : ""
+                  }`}
               />
               <span
-                className={`block w-6 h-0.5 bg-white transition-all duration-300 ${
-                  mobileMenuOpen ? "-rotate-45 -translate-y-2" : ""
-                }`}
+                className={`block w-6 h-0.5 bg-white transition-all duration-300 ${mobileMenuOpen ? "-rotate-45 -translate-y-2" : ""
+                  }`}
               />
             </div>
           </button>
@@ -91,13 +87,6 @@ export default function Navbar() {
           >
             <div className="absolute inset-0 bg-black/95 backdrop-blur-xl pt-24 px-6">
               <div className="flex flex-col gap-6">
-                <Link
-                  href="/game"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="text-2xl font-bold text-white hover:text-accent transition-colors"
-                >
-                  Play
-                </Link>
                 <Link
                   href="/leaderboard"
                   onClick={() => setMobileMenuOpen(false)}
