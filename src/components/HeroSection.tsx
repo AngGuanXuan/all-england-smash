@@ -16,8 +16,8 @@ export default function HeroSection() {
           className="h-full w-full object-cover"
           poster="/hero.png"
         >
-<source
-            src="https://videos.pexels.com/video-files/35087074/35087074-hd_1920_1080_25fps.mp4"
+          <source
+            src="https://videos.pexels.com/video-files/35087074/14864051_2560_1440_25fps.mp4"
             type="video/mp4"
           />
         </video>
@@ -93,7 +93,7 @@ export default function HeroSection() {
           transition={{ duration: 0.6, delay: 0.7 }}
           className="max-w-2xl text-lg sm:text-xl text-white/70 font-medium leading-relaxed mb-10"
         >
-          Experience the intensity of live sports. Every rally, every smash, every moment of glory. 
+          Experience the intensity of live sports. Every rally, every smash, every moment of glory.
           Step onto the virtual court and dominate.
         </motion.p>
 
