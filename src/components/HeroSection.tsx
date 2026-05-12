@@ -17,7 +17,7 @@ export default function HeroSection() {
           poster="/hero.png"
         >
           <source
-            src="https://videos.pexels.com/video-files/4058194/4058194-hd_1920_1080_30fps.mp4"
+            src="https://videos.pexels.com/video-files/6004540/6004540-hd_1920_1080_25fps.mp4"
             type="video/mp4"
           />
         </video>
