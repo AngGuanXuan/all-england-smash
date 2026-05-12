@@ -5,9 +5,9 @@ import Link from "next/link";
 
 export default function CTASection() {
   return (
-    <section className="relative bg-background py-24 sm:py-32 overflow-hidden">
+    <section className="relative bg-black py-24 sm:py-32 overflow-hidden">
       {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-accent/5 to-background" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black via-accent/5 to-black" />
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-accent/10 rounded-full blur-[120px]" />
       </div>

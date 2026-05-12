@@ -35,7 +35,7 @@ const features = [
 
 export default function FeaturesSection() {
   return (
-    <section className="relative bg-background py-24 sm:py-32 overflow-hidden">
+    <section className="relative bg-black py-24 sm:py-32 overflow-hidden">
       {/* Background Elements */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
@@ -111,8 +111,8 @@ export default function FeaturesSection() {
                 fill
                 className="object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
-              <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-background/80" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-black/80" />
               
               {/* Overlay Content */}
               <div className="absolute inset-0 flex items-center justify-center">

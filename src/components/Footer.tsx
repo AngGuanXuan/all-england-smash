@@ -5,7 +5,7 @@ import BrandLogo from "./BrandLogo";
 
 export default function Footer() {
   return (
-    <footer className="relative bg-background border-t border-white/5">
+    <footer className="relative bg-black border-t border-white/5">
       <div className="mx-auto max-w-7xl px-6 py-12">
         <div className="flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="flex flex-col items-center md:items-start gap-4">
