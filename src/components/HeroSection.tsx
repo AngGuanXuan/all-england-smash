@@ -97,12 +97,12 @@ export default function HeroSection() {
           Step onto the virtual court and dominate.
         </motion.p>
 
-        {/* CTA Buttons */}
+        {/* CTA Button */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.9 }}
-          className="flex flex-col sm:flex-row items-center gap-4"
+          className="flex items-center"
         >
           <Link
             href="/game"
@@ -116,26 +116,9 @@ export default function HeroSection() {
               >
                 <path d="M8 5v14l11-7z" />
               </svg>
-              Watch Live
+              Play Now
             </span>
             <div className="absolute inset-0 bg-gradient-to-r from-accent to-emerald-400 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-          </Link>
-          <Link
-            href="/leaderboard"
-            className="glass-light group rounded-full px-10 py-4 text-lg font-semibold text-white transition-all duration-300 hover:scale-105 hover:bg-white/10"
-          >
-            <span className="flex items-center gap-3">
-              Join Now
-              <svg
-                className="h-5 w-5 transition-transform group-hover:translate-x-1"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
-            </span>
           </Link>
         </motion.div>
 
