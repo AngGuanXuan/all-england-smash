@@ -22,6 +22,8 @@ const AI_SPEED = 3.8;
 const WIN_SCORE = 11;
 const HIT_RANGE = 120;
 const SERVE_DELAY = 60; // frames before auto-serve
+/** Distance from net centre to the short service line on each side */
+const SHORT_SERVICE_OFFSET = 130;
 
 /* ─────────────────────── types ─────────────────────── */
 
@@ -133,7 +135,16 @@ function createInitialState(w: number, h: number): GameState {
 
 /* ─────────────────────── component ─────────────────────── */
 /* ──────── UPDATE ──────── */
-function update(s: GameState, keys: Set<string>) {
+function update(
+  s: GameState,
+  keys: Set<string>,
+  aiLerpFactor = 0.12,
+  aiHitMult = 1.0,
+  aiPosError = 20,
+  aiJumpEagerness = 40,
+  aiHitRange = 75,
+  aiLookAhead = 8,
+) {
   const { player: p, ai, shuttle: sh } = s;
   const gy = groundY(s.canvasH);
   const nx = netX(s.canvasW);
@@ -146,8 +157,10 @@ function update(s: GameState, keys: Set<string>) {
     sh.y = server.y - 20;
 
     if (s.serving === "player") {
-      // player serves by pressing spacebar
-      if (keys.has(" ")) {
+      // player serves by pressing spacebar — must stand BEHIND the short service line
+      const playerShortServiceX = nx - SHORT_SERVICE_OFFSET;
+      const behindLine = p.x <= playerShortServiceX;
+      if (keys.has(" ") && behindLine) {
         sh.active = true;
         sh.vx = 6;
         sh.vy = -7;
@@ -156,9 +169,14 @@ function update(s: GameState, keys: Set<string>) {
         p.hitCooldown = 20;
       }
     } else {
-      // AI auto-serves after a short delay
+      // AI backs up to its short service line before serving
+      const aiShortServiceX = nx + SHORT_SERVICE_OFFSET;
+      if (ai.x < aiShortServiceX - 5) {
+        ai.x += Math.min(AI_SPEED, aiShortServiceX - ai.x);
+      }
+      // AI auto-serves after delay, only once in position
       s.serveTimer--;
-      if (s.serveTimer <= 0) {
+      if (s.serveTimer <= 0 && ai.x >= aiShortServiceX - 5) {
         sh.active = true;
         sh.vx = -6;
         sh.vy = -7;
@@ -175,8 +193,11 @@ function update(s: GameState, keys: Set<string>) {
     p.onGround = false;
   }
 
-  // constrain to left half
-  p.x = clamp(p.x, PLAYER_W / 2, nx - NET_W / 2 - PLAYER_W / 2);
+  // constrain to left half; also block crossing the short service line while serving
+  const playerRightLimit = (!sh.active && s.serving === "player")
+    ? nx - SHORT_SERVICE_OFFSET - PLAYER_W / 2
+    : nx - NET_W / 2 - PLAYER_W / 2;
+  p.x = clamp(p.x, PLAYER_W / 2, playerRightLimit);
 
   // gravity
   p.vy += GRAVITY;
@@ -207,35 +228,70 @@ function update(s: GameState, keys: Set<string>) {
 
   /* ── AI ── */
   if (sh.active) {
-    // simple tracking
-    const targetX = sh.x > nx ? sh.x : ai.x; // only chase if on its side
-    if (sh.x > nx) {
-      if (ai.x < targetX - 20) ai.x += AI_SPEED;
-      else if (ai.x > targetX + 20) ai.x -= AI_SPEED;
-    } else {
-      // return to centre of its half
-      const centre = (nx + s.canvasW) / 2;
-      if (ai.x < centre - 10) ai.x += AI_SPEED * 0.5;
-      else if (ai.x > centre + 10) ai.x -= AI_SPEED * 0.5;
+    // ── predict where the shuttle will be `lookAhead` frames from now ──
+    // Simple Euler integration ignoring net collision (good enough for aim)
+    let predX = sh.x;
+    let predY = sh.y;
+    let predVx = sh.vx;
+    let predVy = sh.vy;
+    for (let t = 0; t < aiLookAhead; t++) {
+      predVy += GRAVITY * 0.55;
+      predVx *= 0.998;
+      predX += predVx;
+      predY += predVy;
+      // stop prediction if shuttle would hit ground
+      if (predY >= gy - SHUTTLE_R) { predY = gy - SHUTTLE_R; break; }
     }
 
-    // jump decision
-    if (sh.x > nx && sh.y < gy - PLAYER_H - 30 && ai.onGround) {
+    // ── movement target ──
+    // Chase predicted intercept position when on AI's side, else hold centre
+    const centre = (nx + NET_W / 2 + PLAYER_W / 2 + s.canvasW - PLAYER_W / 2) / 2;
+    let targetX: number;
+    if (sh.x > nx) {
+      // Aim for predicted X with a small intentional error so Hard isn't robotic
+      targetX = clamp(
+        predX + (Math.random() - 0.5) * aiPosError,
+        nx + NET_W / 2 + PLAYER_W / 2,
+        s.canvasW - PLAYER_W / 2,
+      );
+    } else {
+      // Shuttle on player's side — drift toward centre
+      targetX = centre;
+    }
+
+    // Proportional (lerp) movement — no overshooting
+    ai.x += (targetX - ai.x) * aiLerpFactor;
+
+    // ── jump decision ──
+    // Only jump when shuttle is on AI's side AND within vertical reach
+    const shuttleApproaching = sh.x > nx && sh.vx < 0; // coming toward AI
+    const shuttleHighEnough = sh.y < gy - PLAYER_H - aiJumpEagerness;
+    const aiNearShuttleX = Math.abs(ai.x - sh.x) < 80;
+    if (shuttleApproaching && shuttleHighEnough && aiNearShuttleX && ai.onGround) {
       ai.vy = JUMP_VEL;
       ai.onGround = false;
     }
 
-    // hit decision
+    // ── hit decision ──
+    // Must be near the shuttle at racket height (not just anywhere in a large radius)
     ai.hitCooldown = Math.max(0, ai.hitCooldown - 1);
+    const dxHit = Math.abs(ai.x - sh.x);
+    const dyHit = Math.abs(ai.y - sh.y);
+    const inHitZone = dxHit < aiHitRange && dyHit < aiHitRange;
     if (
       ai.hitCooldown === 0 &&
       sh.lastHitBy !== "ai" &&
-      dist({ x: ai.x, y: ai.y }, { x: sh.x, y: sh.y }) < HIT_RANGE
+      inHitZone
     ) {
       ai.isHitting = true;
-      ai.hitCooldown = 25;
-      sh.vx = -(HIT_POWER_X + Math.random() * 2);
-      sh.vy = HIT_POWER_Y - Math.random() * 3;
+      ai.hitCooldown = 22;
+      // Aim cross-court with a slight downward arc — "pro" smash
+      const errorX = (Math.random() - 0.5) * aiPosError * 0.15;
+      const errorY = (Math.random() - 0.5) * aiPosError * 0.1;
+      sh.vx = -(HIT_POWER_X * aiHitMult) + errorX;
+      // Vary between a flat drive and a steep smash depending on shuttle height
+      const heightRatio = clamp((gy - sh.y) / (gy - (gy - 200)), 0, 1);
+      sh.vy = (HIT_POWER_Y * aiHitMult * (0.7 + heightRatio * 0.5)) + errorY;
       sh.lastHitBy = "ai";
     } else {
       ai.isHitting = false;
@@ -373,6 +429,13 @@ function draw(ctx: CanvasRenderingContext2D, s: GameState) {
   ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
   ctx.fillRect(100, gy, 4, GROUND_H); // left bound
   ctx.fillRect(W - 104, gy, 4, GROUND_H); // right bound
+
+  // short service lines (white, one on each side of the net)
+  const sslLeft  = nx - SHORT_SERVICE_OFFSET;
+  const sslRight = nx + SHORT_SERVICE_OFFSET;
+  ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+  ctx.fillRect(sslLeft  - 2, gy, 4, GROUND_H); // player side
+  ctx.fillRect(sslRight - 2, gy, 4, GROUND_H); // AI side
 
   /* net */
   const netTop = gy - 120;
@@ -668,13 +731,41 @@ function drawHUD(ctx: CanvasRenderingContext2D, s: GameState, W: number) {
   }
 }
 
+type Difficulty = "easy" | "medium" | "hard" | "super_hard";
+
+/** Per-difficulty AI tuning */
+const DIFFICULTY_CONFIG: Record<
+  Difficulty,
+  {
+    /** position error in px — how far off the AI aims (0 = perfect) */
+    posError: number;
+    /** lerp factor for movement (higher = snappier) */
+    lerpFactor: number;
+    /** hit power multiplier */
+    hitMult: number;
+    /** how eagerly the AI jumps (lower = more selective) */
+    jumpEagerness: number;
+    /** hit detection radius — smaller means AI must be closer to ball */
+    hitRange: number;
+    /** frames of predict-ahead for shuttle interception */
+    lookAhead: number;
+  }
+> = {
+  easy:       { posError: 55, lerpFactor: 0.06, hitMult: 0.75, jumpEagerness: 60, hitRange: 90,  lookAhead: 0  },
+  medium:     { posError: 20, lerpFactor: 0.12, hitMult: 1.0,  jumpEagerness: 40, hitRange: 75,  lookAhead: 8  },
+  hard:       { posError: 25, lerpFactor: 0.13, hitMult: 1.0,  jumpEagerness: 42, hitRange: 72,  lookAhead: 7  },
+  super_hard: { posError: 2,  lerpFactor: 0.28, hitMult: 1.4,  jumpEagerness: 14, hitRange: 48,  lookAhead: 26 },
+};
+
 export default function GamePage() {
   const params = useParams();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<GameState | null>(null);
   const keysRef = useRef<Set<string>>(new Set());
   const rafRef = useRef<number>(0);
+  const difficultyRef = useRef<Difficulty>("hard");
   const [started, setStarted] = useState(false);
+  const [difficulty, setDifficulty] = useState<Difficulty>("hard");
   const [overlay, setOverlay] = useState<{
     show: boolean;
     winner: string;
@@ -719,9 +810,10 @@ export default function GamePage() {
   }, [resize]);
 
   /* ── start / restart ── */
-  const startGame = useCallback(() => {
+  const startGame = useCallback((diff: Difficulty) => {
     const c = canvasRef.current;
     if (!c) return;
+    difficultyRef.current = diff;
     c.width = window.innerWidth;
     c.height = window.innerHeight;
     stateRef.current = createInitialState(c.width, c.height);
@@ -739,7 +831,17 @@ export default function GamePage() {
       const s = stateRef.current;
       if (!c || !ctx || !s) return;
 
-      update(s, keysRef.current);
+      const cfg = DIFFICULTY_CONFIG[difficultyRef.current];
+      update(
+        s,
+        keysRef.current,
+        cfg.lerpFactor,
+        cfg.hitMult,
+        cfg.posError,
+        cfg.jumpEagerness,
+        cfg.hitRange,
+        cfg.lookAhead,
+      );
       draw(ctx, s);
 
       if (s.gameOver) {
@@ -798,13 +900,97 @@ export default function GamePage() {
                   <br />
                   First to {WIN_SCORE} wins!
                 </p>
-                <button
-                  id="start-game-btn"
-                  onClick={startGame}
-                  className="mt-2 px-8 py-3 rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 text-white font-semibold text-lg shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
-                >
-                  Start Match
-                </button>
+
+                {/* Difficulty selector */}
+                <div className="w-full flex flex-col items-center gap-3">
+                  <p className="text-xs font-medium text-slate-500 uppercase tracking-widest">
+                    Select Difficulty
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 w-full">
+                    {([
+                      {
+                        key: "easy" as Difficulty,
+                        label: "Easy",
+                        from: "from-green-500",
+                        to: "to-emerald-400",
+                        ringColor: "ring-green-400",
+                        glowColor: "shadow-green-500/50",
+                      },
+                      {
+                        key: "medium" as Difficulty,
+                        label: "Medium",
+                        from: "from-amber-400",
+                        to: "to-orange-400",
+                        ringColor: "ring-amber-400",
+                        glowColor: "shadow-amber-400/50",
+                      },
+                      {
+                        key: "hard" as Difficulty,
+                        label: "Hard",
+                        from: "from-rose-500",
+                        to: "to-pink-500",
+                        ringColor: "ring-rose-400",
+                        glowColor: "shadow-rose-500/50",
+                      },
+                      {
+                        key: "super_hard" as Difficulty,
+                        label: "Super Hard",
+                        from: "from-violet-600",
+                        to: "to-purple-500",
+                        ringColor: "ring-violet-400",
+                        glowColor: "shadow-violet-500/50",
+                      },
+                    ] as const).map(({ key, label, from, to, ringColor, glowColor }) => {
+                      const selected = difficulty === key;
+                      return (
+                        <button
+                          key={key}
+                          id={`difficulty-${key}`}
+                          onClick={() => setDifficulty(key)}
+                          className={[
+                            "relative py-2.5 rounded-full font-semibold text-sm text-white transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer shadow-lg flex items-center justify-center gap-1.5",
+                            `bg-gradient-to-r ${from} ${to}`,
+                            selected
+                              ? `ring-2 ${ringColor} scale-105 shadow-lg ${glowColor}`
+                              : "opacity-50 hover:opacity-75",
+                          ].join(" ")}
+                        >
+                          {/* checkmark icon */}
+                          <span
+                            className={[
+                              "transition-all duration-200 overflow-hidden",
+                              selected ? "w-4 opacity-100" : "w-0 opacity-0",
+                            ].join(" ")}
+                          >
+                            <svg
+                              viewBox="0 0 16 16"
+                              fill="none"
+                              className="w-4 h-4 shrink-0"
+                            >
+                              <path
+                                d="M3 8l3.5 3.5L13 4"
+                                stroke="white"
+                                strokeWidth="2.2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </span>
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Start Match button */}
+                  <button
+                    id="start-game-btn"
+                    onClick={() => startGame(difficulty)}
+                    className="w-full mt-1 px-8 py-3 rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 text-white font-semibold text-lg shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
+                  >
+                    Start Match
+                  </button>
+                </div>
               </>
             )}
 
