@@ -144,6 +144,7 @@ function update(
   aiJumpEagerness = 40,
   aiHitRange = 75,
   aiLookAhead = 8,
+  aiMaxSpeedMult = 1.0,
 ) {
   const { player: p, ai, shuttle: sh } = s;
   const gy = groundY(s.canvasH);
@@ -151,7 +152,7 @@ function update(
 
   // Calculate a scale factor based on screen width (baseline 1200px)
   const scale = clamp(s.canvasW / 1200, 0.5, 1.25);
-  
+
   // Responsive Physics Constants
   const resGravity = GRAVITY * scale;
   const resPlayerMove = MOVE_SPEED * scale;
@@ -162,6 +163,7 @@ function update(
   const resAiSpeed = aiLerpFactor * scale;
   const resAiJumpEagerness = aiJumpEagerness * scale;
   const resAiHitRange = aiHitRange * scale;
+  const resAiMaxSpeed = resPlayerMove * aiMaxSpeedMult;
 
   /* ── serve ── */
   if (!sh.active && !s.gameOver) {
@@ -188,8 +190,21 @@ function update(
       s.serveTimer--;
       if (s.serveTimer <= 0 && ai.x >= aiShortServiceX - 5 * scale) {
         sh.active = true;
-        sh.vx = -6 * scale;
-        sh.vy = -7 * scale;
+        // Better serve for Hard/Super Hard
+        if (aiLookAhead >= 12) {
+          const flick = Math.random() > 0.4; // 60% flick
+          if (flick) {
+            sh.vx = -(10 + Math.random() * 3) * scale;
+            sh.vy = -(8 + Math.random() * 3) * scale;
+          } else {
+            // short serve
+            sh.vx = -4.5 * scale;
+            sh.vy = -6.5 * scale;
+          }
+        } else {
+          sh.vx = -6 * scale;
+          sh.vy = -7 * scale;
+        }
         sh.lastHitBy = "ai";
       }
     }
@@ -253,7 +268,11 @@ function update(
     }
 
     const centre =
-      (nx + (NET_W / 2 + PLAYER_W / 2) * scale + s.canvasW - (PLAYER_W / 2) * scale) / 2;
+      (nx +
+        (NET_W / 2 + PLAYER_W / 2) * scale +
+        s.canvasW -
+        (PLAYER_W / 2) * scale) /
+      2;
     let targetX: number;
     if (sh.x > nx) {
       targetX = clamp(
@@ -265,7 +284,8 @@ function update(
       targetX = centre;
     }
 
-    ai.x += (targetX - ai.x) * resAiSpeed;
+    const moveDiff = (targetX - ai.x) * resAiSpeed;
+    ai.x += clamp(moveDiff, -resAiMaxSpeed, resAiMaxSpeed);
 
     const shuttleApproaching = sh.x > nx && sh.vx < 0;
     const shuttleHighEnough = sh.y < gy - PLAYER_H - resAiJumpEagerness;
@@ -323,7 +343,11 @@ function update(
     }
   }
 
-  ai.x = clamp(ai.x, nx + (NET_W / 2 + PLAYER_W / 2) * scale, s.canvasW - (PLAYER_W / 2) * scale);
+  ai.x = clamp(
+    ai.x,
+    nx + (NET_W / 2 + PLAYER_W / 2) * scale,
+    s.canvasW - (PLAYER_W / 2) * scale,
+  );
   ai.vy += resGravity;
   ai.y += ai.vy;
   if (ai.y >= gy - PLAYER_H) {
@@ -502,7 +526,11 @@ function draw(ctx: CanvasRenderingContext2D, s: GameState) {
   drawHUD(ctx, s, W, scale);
 }
 
-function drawShuttle(ctx: CanvasRenderingContext2D, sh: Shuttle, scale: number) {
+function drawShuttle(
+  ctx: CanvasRenderingContext2D,
+  sh: Shuttle,
+  scale: number,
+) {
   ctx.save();
   ctx.translate(sh.x, sh.y);
   const angle = Math.atan2(sh.vy, sh.vx);
@@ -526,7 +554,12 @@ function drawShuttle(ctx: CanvasRenderingContext2D, sh: Shuttle, scale: number) 
     ctx.moveTo(-corkR * 0.3, baseY - 0.8 * scale);
     ctx.quadraticCurveTo(tipX * 0.5, tipY * 0.6, tipX, tipY);
     ctx.lineTo(tipX, tipY);
-    ctx.quadraticCurveTo(tipX * 0.5, tipY * 0.6, -corkR * 0.3, baseY + 0.8 * scale);
+    ctx.quadraticCurveTo(
+      tipX * 0.5,
+      tipY * 0.6,
+      -corkR * 0.3,
+      baseY + 0.8 * scale,
+    );
     ctx.closePath();
     ctx.fill();
 
@@ -555,7 +588,14 @@ function drawShuttle(ctx: CanvasRenderingContext2D, sh: Shuttle, scale: number) 
 
   /* ── cork base ── */
   // main cork
-  const corkGrad = ctx.createRadialGradient(1 * scale, -1 * scale, 0, 0, 0, corkR);
+  const corkGrad = ctx.createRadialGradient(
+    1 * scale,
+    -1 * scale,
+    0,
+    0,
+    0,
+    corkR,
+  );
   corkGrad.addColorStop(0, "#ffffff");
   corkGrad.addColorStop(0.4, "#e2e8f0");
   corkGrad.addColorStop(1, "#94a3b8");
@@ -664,7 +704,10 @@ function drawPlayer(
   for (let i = -10 * scale; i <= 10 * scale; i += 4 * scale) {
     ctx.beginPath();
     ctx.moveTo(racketX + racketDir * 10 * scale, racketY - 5 * scale + i);
-    ctx.lineTo(racketX + racketDir * 10 * scale + racketDir * 11 * scale, racketY - 5 * scale + i);
+    ctx.lineTo(
+      racketX + racketDir * 10 * scale + racketDir * 11 * scale,
+      racketY - 5 * scale + i,
+    );
     ctx.stroke();
   }
 
@@ -732,7 +775,11 @@ function drawHUD(
 
   // ai score
   ctx.fillStyle = "#f9a8d4";
-  ctx.fillText(String(s.aiScore), panelX + panelW - 70 * scale, panelY + panelH / 2);
+  ctx.fillText(
+    String(s.aiScore),
+    panelX + panelW - 70 * scale,
+    panelY + panelH / 2,
+  );
 
   ctx.restore();
 
@@ -778,6 +825,8 @@ const DIFFICULTY_CONFIG: Record<
     hitRange: number;
     /** frames of predict-ahead for shuttle interception */
     lookAhead: number;
+    /** max speed multiplier (relative to MOVE_SPEED) */
+    maxSpeedMult: number;
   }
 > = {
   easy: {
@@ -787,30 +836,34 @@ const DIFFICULTY_CONFIG: Record<
     jumpEagerness: 60,
     hitRange: 90,
     lookAhead: 0,
+    maxSpeedMult: 0.6,
   },
   medium: {
-    posError: 20,
-    lerpFactor: 0.12,
-    hitMult: 1.0,
-    jumpEagerness: 40,
-    hitRange: 75,
-    lookAhead: 8,
+    posError: 70,
+    lerpFactor: 0.055,
+    hitMult: 0.85,
+    jumpEagerness: 75,
+    hitRange: 95,
+    lookAhead: 0,
+    maxSpeedMult: 0.75,
   },
   hard: {
-    posError: 25,
-    lerpFactor: 0.13,
-    hitMult: 1.0,
-    jumpEagerness: 42,
-    hitRange: 72,
-    lookAhead: 7,
+    posError: 15,
+    lerpFactor: 0.4,
+    hitMult: 1.3,
+    jumpEagerness: 35,
+    hitRange: 70,
+    lookAhead: 20,
+    maxSpeedMult: 2,
   },
   super_hard: {
     posError: 2,
-    lerpFactor: 0.28,
-    hitMult: 1.4,
+    lerpFactor: 0.8,
+    hitMult: 1.2,
     jumpEagerness: 14,
     hitRange: 48,
     lookAhead: 26,
+    maxSpeedMult: 5,
   },
 };
 
@@ -820,10 +873,10 @@ export default function GamePage() {
   const stateRef = useRef<GameState | null>(null);
   const keysRef = useRef<Set<string>>(new Set());
   const rafRef = useRef<number>(0);
-  const difficultyRef = useRef<Difficulty>("hard");
+  const difficultyRef = useRef<Difficulty>("medium");
   const [started, setStarted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [difficulty, setDifficulty] = useState<Difficulty>("hard");
+  const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [overlay, setOverlay] = useState<{
     show: boolean;
     winner: string;
@@ -924,6 +977,7 @@ export default function GamePage() {
         cfg.jumpEagerness,
         cfg.hitRange,
         cfg.lookAhead,
+        cfg.maxSpeedMult,
       );
       draw(ctx, s);
 
