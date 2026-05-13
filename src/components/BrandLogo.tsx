@@ -23,14 +23,6 @@ export default function BrandLogo({ className = "" }: BrandLogoProps) {
           className="w-20 object-contain relative z-10"
           draggable={false}
         />
-        <Image
-          src="/logo_word.png"
-          alt="All England Smash Logo"
-          width={1060}
-          height={859}
-          className="w-20 object-contain relative z-10"
-          draggable={false}
-        />
       </div>
     </Link>
   );
