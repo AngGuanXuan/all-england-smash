@@ -6,33 +6,32 @@ interface BrandLogoProps {
   hideText?: boolean;
 }
 
-export default function BrandLogo({
-  className = "",
-  hideText = false,
-}: BrandLogoProps) {
+export default function BrandLogo({ className = "" }: BrandLogoProps) {
+  // Since the new emblem logo contains the full text, we hide the redundant text
+  // and make the logo larger so it's clearly legible.
   return (
     <Link
       href="/"
       className={`flex items-center gap-3 group transition-transform hover:scale-[1.02] active:scale-95 ${className}`}
     >
-      <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-hidden bg-white/5 border border-white/10 backdrop-blur-sm p-1 shadow-[0_0_15px_rgba(34,197,94,0.2)] group-hover:shadow-[0_0_25px_rgba(34,197,94,0.4)] transition-all duration-300">
-        <div className="absolute inset-0 bg-gradient-to-br from-accent/20 to-emerald-600/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="flex items-center relative transition-all duration-300">
         <Image
           src="/logo.png"
-          alt="AES Logo"
-          width={48}
-          height={48}
-          className="w-full h-full object-contain relative z-10"
+          alt="All England Smash Logo"
+          width={859}
+          height={859}
+          className="w-20 object-contain relative z-10"
+          draggable={false}
+        />
+        <Image
+          src="/logo_word.png"
+          alt="All England Smash Logo"
+          width={1060}
+          height={859}
+          className="w-20 object-contain relative z-10"
+          draggable={false}
         />
       </div>
-      {!hideText && (
-        <span className="text-xl sm:text-2xl font-bold tracking-tight text-white group-hover:text-accent transition-colors">
-          AES
-          <span className="text-muted font-medium group-hover:text-white/80 transition-colors hidden sm:inline">
-            mash
-          </span>
-        </span>
-      )}
     </Link>
   );
 }

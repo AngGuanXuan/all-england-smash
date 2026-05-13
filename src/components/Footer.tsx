@@ -9,7 +9,7 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl px-6 py-12">
         <div className="flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="flex flex-col items-center md:items-start gap-4">
-            <BrandLogo />
+            <BrandLogo hideText />
             <p className="text-sm text-muted-foreground text-center md:text-left">
               The ultimate badminton simulation experience.
             </p>

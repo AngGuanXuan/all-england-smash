@@ -19,7 +19,7 @@ export default async function LobbyPage() {
       <div className="relative z-10 w-full max-w-4xl mt-16 flex flex-col gap-12">
         {/* Header Section */}
         <div className="flex flex-col items-center">
-          <BrandLogo className="mb-8" />
+          <BrandLogo hideText className="mb-8" />
           <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300 drop-shadow-sm mb-4">
             Game Lobby
           </h1>

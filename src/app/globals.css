@@ -63,17 +63,11 @@ body {
 
 /* Glassmorphism utilities */
 .glass {
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  @apply bg-black/40 backdrop-blur-[20px] border border-white/10;
 }
 
 .glass-light {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  @apply bg-white/5 backdrop-blur-[16px] border border-white/10;
 }
 
 /* Animation keyframes */
