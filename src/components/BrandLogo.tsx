@@ -16,7 +16,7 @@ export default function BrandLogo({ className = "" }: BrandLogoProps) {
     >
       <div className="flex items-center relative transition-all duration-300">
         <Image
-          src="/logo.png"
+          src="/logo-white.png"
           alt="All England Smash Logo"
           width={859}
           height={859}
