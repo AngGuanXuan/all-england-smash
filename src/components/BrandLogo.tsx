@@ -20,7 +20,7 @@ export default function BrandLogo({ className = "" }: BrandLogoProps) {
           alt="All England Smash Logo"
           width={859}
           height={859}
-          className="w-20 object-contain relative z-10"
+          className="w-[160px] object-contain relative z-10"
           draggable={false}
         />
       </div>
