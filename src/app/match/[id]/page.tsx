@@ -149,58 +149,68 @@ function update(
   const gy = groundY(s.canvasH);
   const nx = netX(s.canvasW);
 
+  // Calculate a scale factor based on screen width (baseline 1200px)
+  const scale = clamp(s.canvasW / 1200, 0.5, 1.25);
+  
+  // Responsive Physics Constants
+  const resGravity = GRAVITY * scale;
+  const resPlayerMove = MOVE_SPEED * scale;
+  const resJumpVel = JUMP_VEL * scale;
+  const resHitPowerX = HIT_POWER_X * scale;
+  const resHitPowerY = HIT_POWER_Y * scale;
+  const resAiServeSpeed = AI_SPEED * scale;
+  const resAiSpeed = aiLerpFactor * scale;
+  const resAiJumpEagerness = aiJumpEagerness * scale;
+  const resAiHitRange = aiHitRange * scale;
+
   /* ── serve ── */
   if (!sh.active && !s.gameOver) {
-    // position shuttle above server
     const server = s.serving === "player" ? p : ai;
-    sh.x = server.x + (s.serving === "player" ? 20 : -20);
-    sh.y = server.y - 20;
+    sh.x = server.x + (s.serving === "player" ? 20 * scale : -20 * scale);
+    sh.y = server.y - 20 * scale;
 
     if (s.serving === "player") {
-      // player serves by pressing spacebar — must stand BEHIND the short service line
-      const playerShortServiceX = nx - SHORT_SERVICE_OFFSET;
+      const playerShortServiceX = nx - SHORT_SERVICE_OFFSET * scale;
       const behindLine = p.x <= playerShortServiceX;
       if (keys.has(" ") && behindLine) {
         sh.active = true;
-        sh.vx = 6;
-        sh.vy = -7;
+        sh.vx = 6 * scale;
+        sh.vy = -7 * scale;
         sh.lastHitBy = "player";
         p.isHitting = true;
         p.hitCooldown = 20;
       }
     } else {
-      // AI backs up to its short service line before serving
-      const aiShortServiceX = nx + SHORT_SERVICE_OFFSET;
-      if (ai.x < aiShortServiceX - 5) {
-        ai.x += Math.min(AI_SPEED, aiShortServiceX - ai.x);
+      const aiShortServiceX = nx + SHORT_SERVICE_OFFSET * scale;
+      if (ai.x < aiShortServiceX - 5 * scale) {
+        ai.x += Math.min(resAiServeSpeed, aiShortServiceX - ai.x);
       }
-      // AI auto-serves after delay, only once in position
       s.serveTimer--;
-      if (s.serveTimer <= 0 && ai.x >= aiShortServiceX - 5) {
+      if (s.serveTimer <= 0 && ai.x >= aiShortServiceX - 5 * scale) {
         sh.active = true;
-        sh.vx = -6;
-        sh.vy = -7;
+        sh.vx = -6 * scale;
+        sh.vy = -7 * scale;
         sh.lastHitBy = "ai";
       }
     }
   }
 
   /* ── player movement ── */
-  if (keys.has("arrowleft")) p.x -= MOVE_SPEED;
-  if (keys.has("arrowright")) p.x += MOVE_SPEED;
+  if (keys.has("arrowleft")) p.x -= resPlayerMove;
+  if (keys.has("arrowright")) p.x += resPlayerMove;
   if (keys.has("arrowup") && p.onGround && sh.active) {
-    p.vy = JUMP_VEL;
+    p.vy = resJumpVel;
     p.onGround = false;
   }
 
-  // constrain to left half; also block crossing the short service line while serving
-  const playerRightLimit = (!sh.active && s.serving === "player")
-    ? nx - SHORT_SERVICE_OFFSET - PLAYER_W / 2
-    : nx - NET_W / 2 - PLAYER_W / 2;
-  p.x = clamp(p.x, PLAYER_W / 2, playerRightLimit);
+  const playerRightLimit =
+    !sh.active && s.serving === "player"
+      ? nx - (SHORT_SERVICE_OFFSET + PLAYER_W / 2) * scale
+      : nx - (NET_W / 2 + PLAYER_W / 2) * scale;
+  p.x = clamp(p.x, (PLAYER_W / 2) * scale, playerRightLimit);
 
   // gravity
-  p.vy += GRAVITY;
+  p.vy += resGravity;
   p.y += p.vy;
   if (p.y >= gy - PLAYER_H) {
     p.y = gy - PLAYER_H;
@@ -208,18 +218,17 @@ function update(
     p.onGround = true;
   }
 
-  // hit (only when shuttle is already active — serve is handled above)
+  // hit
   if (p.hitCooldown > 0) p.hitCooldown--;
   if (sh.active && keys.has(" ") && p.hitCooldown === 0) {
     p.isHitting = true;
     p.hitCooldown = 20;
-    // check shuttle in range and ensure they haven't hit it consecutively
     if (
       sh.lastHitBy !== "player" &&
-      dist({ x: p.x, y: p.y }, { x: sh.x, y: sh.y }) < HIT_RANGE
+      dist({ x: p.x, y: p.y }, { x: sh.x, y: sh.y }) < HIT_RANGE * scale
     ) {
-      sh.vx = HIT_POWER_X + Math.random() * 2;
-      sh.vy = HIT_POWER_Y - Math.random() * 2;
+      sh.vx = resHitPowerX + Math.random() * 2 * scale;
+      sh.vy = resHitPowerY - Math.random() * 2 * scale;
       sh.lastHitBy = "player";
     }
   } else if (sh.active) {
@@ -228,79 +237,94 @@ function update(
 
   /* ── AI ── */
   if (sh.active) {
-    // ── predict where the shuttle will be `lookAhead` frames from now ──
-    // Simple Euler integration ignoring net collision (good enough for aim)
     let predX = sh.x;
     let predY = sh.y;
     let predVx = sh.vx;
     let predVy = sh.vy;
     for (let t = 0; t < aiLookAhead; t++) {
-      predVy += GRAVITY * 0.55;
+      predVy += resGravity * 0.55;
       predVx *= 0.998;
       predX += predVx;
       predY += predVy;
-      // stop prediction if shuttle would hit ground
-      if (predY >= gy - SHUTTLE_R) { predY = gy - SHUTTLE_R; break; }
+      if (predY >= gy - SHUTTLE_R) {
+        predY = gy - SHUTTLE_R;
+        break;
+      }
     }
 
-    // ── movement target ──
-    // Chase predicted intercept position when on AI's side, else hold centre
-    const centre = (nx + NET_W / 2 + PLAYER_W / 2 + s.canvasW - PLAYER_W / 2) / 2;
+    const centre =
+      (nx + (NET_W / 2 + PLAYER_W / 2) * scale + s.canvasW - (PLAYER_W / 2) * scale) / 2;
     let targetX: number;
     if (sh.x > nx) {
-      // Aim for predicted X with a small intentional error so Hard isn't robotic
       targetX = clamp(
-        predX + (Math.random() - 0.5) * aiPosError,
-        nx + NET_W / 2 + PLAYER_W / 2,
-        s.canvasW - PLAYER_W / 2,
+        predX + (Math.random() - 0.5) * aiPosError * scale,
+        nx + (NET_W / 2 + PLAYER_W / 2) * scale,
+        s.canvasW - (PLAYER_W / 2) * scale,
       );
     } else {
-      // Shuttle on player's side — drift toward centre
       targetX = centre;
     }
 
-    // Proportional (lerp) movement — no overshooting
-    ai.x += (targetX - ai.x) * aiLerpFactor;
+    ai.x += (targetX - ai.x) * resAiSpeed;
 
-    // ── jump decision ──
-    // Only jump when shuttle is on AI's side AND within vertical reach
-    const shuttleApproaching = sh.x > nx && sh.vx < 0; // coming toward AI
-    const shuttleHighEnough = sh.y < gy - PLAYER_H - aiJumpEagerness;
-    const aiNearShuttleX = Math.abs(ai.x - sh.x) < 80;
-    if (shuttleApproaching && shuttleHighEnough && aiNearShuttleX && ai.onGround) {
-      ai.vy = JUMP_VEL;
+    const shuttleApproaching = sh.x > nx && sh.vx < 0;
+    const shuttleHighEnough = sh.y < gy - PLAYER_H - resAiJumpEagerness;
+    const aiNearShuttleX = Math.abs(ai.x - sh.x) < 80 * scale;
+    if (
+      shuttleApproaching &&
+      shuttleHighEnough &&
+      aiNearShuttleX &&
+      ai.onGround
+    ) {
+      ai.vy = resJumpVel;
       ai.onGround = false;
     }
 
-    // ── hit decision ──
-    // Must be near the shuttle at racket height (not just anywhere in a large radius)
+    // ── smart leave decision ──
+    let willLandOut = false;
+    if (sh.vx > 0 && sh.lastHitBy === "player") {
+      let tempX = sh.x;
+      let tempY = sh.y;
+      let tempVx = sh.vx;
+      let tempVy = sh.vy;
+      for (let i = 0; i < 120; i++) {
+        tempVy += resGravity * 0.55;
+        tempVx *= 0.998;
+        tempX += tempVx;
+        tempY += tempVy;
+        if (tempY >= gy - SHUTTLE_R) break;
+      }
+      if (tempX > s.canvasW - 100 * scale) {
+        willLandOut = true;
+      }
+    }
+
     ai.hitCooldown = Math.max(0, ai.hitCooldown - 1);
     const dxHit = Math.abs(ai.x - sh.x);
     const dyHit = Math.abs(ai.y - sh.y);
-    const inHitZone = dxHit < aiHitRange && dyHit < aiHitRange;
+    const inHitZone = dxHit < resAiHitRange && dyHit < resAiHitRange;
+
     if (
       ai.hitCooldown === 0 &&
       sh.lastHitBy !== "ai" &&
-      inHitZone
+      inHitZone &&
+      !willLandOut
     ) {
       ai.isHitting = true;
       ai.hitCooldown = 22;
-      // Aim cross-court with a slight downward arc — "pro" smash
-      const errorX = (Math.random() - 0.5) * aiPosError * 0.15;
-      const errorY = (Math.random() - 0.5) * aiPosError * 0.1;
-      sh.vx = -(HIT_POWER_X * aiHitMult) + errorX;
-      // Vary between a flat drive and a steep smash depending on shuttle height
-      const heightRatio = clamp((gy - sh.y) / (gy - (gy - 200)), 0, 1);
-      sh.vy = (HIT_POWER_Y * aiHitMult * (0.7 + heightRatio * 0.5)) + errorY;
+      const errorX = (Math.random() - 0.5) * aiPosError * 0.15 * scale;
+      const errorY = (Math.random() - 0.5) * aiPosError * 0.1 * scale;
+      sh.vx = -(resHitPowerX * aiHitMult) + errorX;
+      const heightRatio = clamp((gy - sh.y) / (gy - (gy - 200 * scale)), 0, 1);
+      sh.vy = resHitPowerY * aiHitMult * (0.7 + heightRatio * 0.5) + errorY;
       sh.lastHitBy = "ai";
     } else {
       ai.isHitting = false;
     }
   }
 
-  // AI constrained to right half
-  ai.x = clamp(ai.x, nx + NET_W / 2 + PLAYER_W / 2, s.canvasW - PLAYER_W / 2);
-  ai.vy += GRAVITY;
+  ai.x = clamp(ai.x, nx + (NET_W / 2 + PLAYER_W / 2) * scale, s.canvasW - (PLAYER_W / 2) * scale);
+  ai.vy += resGravity;
   ai.y += ai.vy;
   if (ai.y >= gy - PLAYER_H) {
     ai.y = gy - PLAYER_H;
@@ -310,37 +334,32 @@ function update(
 
   /* ── shuttle physics ── */
   if (sh.active) {
-    sh.vy += GRAVITY * 0.55; // lighter than a person
-    sh.vx *= 0.998; // tiny air drag
+    sh.vy += resGravity * 0.55;
+    sh.vx *= 0.998;
     sh.x += sh.vx;
     sh.y += sh.vy;
 
-    // trail
     sh.trail.push({ x: sh.x, y: sh.y });
     if (sh.trail.length > 12) sh.trail.shift();
 
-    /* net collision */
-    const netTop = gy - 120;
+    const netTop = gy - 120 * scale;
     if (
       sh.y > netTop &&
       sh.y < gy &&
-      Math.abs(sh.x - nx) < NET_W / 2 + SHUTTLE_R
+      Math.abs(sh.x - nx) < (NET_W / 2 + SHUTTLE_R) * scale
     ) {
       sh.vx *= -0.4;
-      sh.x += sh.vx > 0 ? NET_W : -NET_W;
+      sh.x += sh.vx > 0 ? NET_W * scale : -NET_W * scale;
     }
 
-    /* ground → point scored */
     if (sh.y >= gy - SHUTTLE_R) {
-      const leftBound = 100;
-      const rightBound = s.canvasW - 100;
+      const leftBound = 100 * scale;
+      const rightBound = s.canvasW - 100 * scale;
       let pointFor = "";
 
       if (sh.x < leftBound || sh.x > rightBound) {
-        // Out of bounds! Point goes to the person who didn't hit it last.
         pointFor = sh.lastHitBy === "player" ? "ai" : "player";
       } else {
-        // In bounds. Point goes to the side opposite to where it landed.
         pointFor = sh.x < nx ? "ai" : "player";
       }
 
@@ -359,11 +378,8 @@ function update(
       }
     }
 
-    /* out of bounds horizontally */
     if (sh.x < 0 || sh.x > s.canvasW) {
-      // Definitely out
       const pointFor = sh.lastHitBy === "player" ? "ai" : "player";
-
       if (pointFor === "ai") {
         s.aiScore++;
         s.serving = "player";
@@ -372,7 +388,6 @@ function update(
         s.serving = "ai";
       }
       resetShuttle(s);
-
       if (s.playerScore >= WIN_SCORE || s.aiScore >= WIN_SCORE) {
         s.gameOver = true;
         s.winner = s.playerScore >= WIN_SCORE ? "You Win! 🏆" : "AI Wins! 🤖";
@@ -395,6 +410,7 @@ function draw(ctx: CanvasRenderingContext2D, s: GameState) {
   const { canvasW: W, canvasH: H, player: p, ai, shuttle: sh } = s;
   const gy = groundY(H);
   const nx = netX(W);
+  const scale = clamp(s.canvasW / 1200, 0.5, 1.25);
 
   /* background gradient */
   const bg = ctx.createLinearGradient(0, 0, 0, H);
@@ -409,8 +425,8 @@ function draw(ctx: CanvasRenderingContext2D, s: GameState) {
   ctx.fillRect(0, gy, W, GROUND_H);
   // court lines
   ctx.strokeStyle = "rgba(255,255,255,0.15)";
-  ctx.lineWidth = 2;
-  ctx.setLineDash([8, 8]);
+  ctx.lineWidth = 2 * scale;
+  ctx.setLineDash([8 * scale, 8 * scale]);
   ctx.beginPath();
   ctx.moveTo(nx, gy);
   ctx.lineTo(nx, gy + GROUND_H);
@@ -422,40 +438,45 @@ function draw(ctx: CanvasRenderingContext2D, s: GameState) {
   ctx.fillRect(0, gy, W, GROUND_H);
   // lighter stripe
   ctx.fillStyle = "#44693f";
-  for (let i = 0; i < W; i += 80) {
-    ctx.fillRect(i, gy, 40, GROUND_H);
+  const stripeW = 40 * scale;
+  const stripeGap = 80 * scale;
+  for (let i = 0; i < W; i += stripeGap) {
+    ctx.fillRect(i, gy, stripeW, GROUND_H);
   }
   // boundary lines
+  const boundPad = 100 * scale;
   ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-  ctx.fillRect(100, gy, 4, GROUND_H); // left bound
-  ctx.fillRect(W - 104, gy, 4, GROUND_H); // right bound
+  ctx.fillRect(boundPad, gy, 4 * scale, GROUND_H); // left bound
+  ctx.fillRect(W - boundPad - 4 * scale, gy, 4 * scale, GROUND_H); // right bound
 
   // short service lines (white, one on each side of the net)
-  const sslLeft  = nx - SHORT_SERVICE_OFFSET;
-  const sslRight = nx + SHORT_SERVICE_OFFSET;
+  const sslLeft = nx - SHORT_SERVICE_OFFSET * scale;
+  const sslRight = nx + SHORT_SERVICE_OFFSET * scale;
   ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
-  ctx.fillRect(sslLeft  - 2, gy, 4, GROUND_H); // player side
-  ctx.fillRect(sslRight - 2, gy, 4, GROUND_H); // AI side
+  ctx.fillRect(sslLeft - 2 * scale, gy, 4 * scale, GROUND_H); // player side
+  ctx.fillRect(sslRight - 2 * scale, gy, 4 * scale, GROUND_H); // AI side
 
   /* net */
-  const netTop = gy - 120;
+  const netHeight = 120 * scale;
+  const netTop = gy - netHeight;
+  const netW = NET_W * scale;
   const netGrad = ctx.createLinearGradient(nx, netTop, nx, gy);
   netGrad.addColorStop(0, "#e2e8f0");
   netGrad.addColorStop(1, "#94a3b8");
   ctx.fillStyle = netGrad;
-  ctx.fillRect(nx - NET_W / 2, netTop, NET_W, gy - netTop);
+  ctx.fillRect(nx - netW / 2, netTop, netW, gy - netTop);
   // net mesh lines
   ctx.strokeStyle = "rgba(255,255,255,0.3)";
-  ctx.lineWidth = 1;
-  for (let y = netTop; y < gy; y += 12) {
+  ctx.lineWidth = 1 * scale;
+  for (let y = netTop; y < gy; y += 12 * scale) {
     ctx.beginPath();
-    ctx.moveTo(nx - NET_W / 2, y);
-    ctx.lineTo(nx + NET_W / 2, y);
+    ctx.moveTo(nx - netW / 2, y);
+    ctx.lineTo(nx + netW / 2, y);
     ctx.stroke();
   }
   // post top
   ctx.fillStyle = "#f1f5f9";
-  ctx.fillRect(nx - NET_W, netTop - 6, NET_W * 2, 6);
+  ctx.fillRect(nx - netW, netTop - 6 * scale, netW * 2, 6 * scale);
 
   /* shuttle trail */
   if (sh.active && sh.trail.length > 1) {
@@ -463,7 +484,7 @@ function draw(ctx: CanvasRenderingContext2D, s: GameState) {
       const alpha = i / sh.trail.length;
       ctx.beginPath();
       ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.5})`;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2 * scale;
       ctx.moveTo(sh.trail[i - 1].x, sh.trail[i - 1].y);
       ctx.lineTo(sh.trail[i].x, sh.trail[i].y);
       ctx.stroke();
@@ -471,26 +492,26 @@ function draw(ctx: CanvasRenderingContext2D, s: GameState) {
   }
 
   /* shuttlecock */
-  drawShuttle(ctx, sh);
+  drawShuttle(ctx, sh, scale);
 
   /* players */
-  drawPlayer(ctx, p, gy, true);
-  drawPlayer(ctx, ai, gy, false);
+  drawPlayer(ctx, p, gy, true, scale);
+  drawPlayer(ctx, ai, gy, false, scale);
 
   /* HUD */
-  drawHUD(ctx, s, W);
+  drawHUD(ctx, s, W, scale);
 }
 
-function drawShuttle(ctx: CanvasRenderingContext2D, sh: Shuttle) {
+function drawShuttle(ctx: CanvasRenderingContext2D, sh: Shuttle, scale: number) {
   ctx.save();
   ctx.translate(sh.x, sh.y);
   const angle = Math.atan2(sh.vy, sh.vx);
   ctx.rotate(angle);
 
-  const corkR = SHUTTLE_R;
+  const corkR = SHUTTLE_R * scale;
   const featherCount = 16;
-  const featherLen = 22;
-  const skirtSpread = 12; // half-width of the feather fan at the tip
+  const featherLen = 22 * scale;
+  const skirtSpread = 12 * scale; // half-width of the feather fan at the tip
 
   /* ── feathers (individual quills fanning behind the cork) ── */
   for (let i = 0; i < featherCount; i++) {
@@ -502,16 +523,16 @@ function drawShuttle(ctx: CanvasRenderingContext2D, sh: Shuttle) {
     // feather fill
     ctx.fillStyle = i % 2 === 0 ? "#ffffff" : "#f0f0f0";
     ctx.beginPath();
-    ctx.moveTo(-corkR * 0.3, baseY - 0.8);
+    ctx.moveTo(-corkR * 0.3, baseY - 0.8 * scale);
     ctx.quadraticCurveTo(tipX * 0.5, tipY * 0.6, tipX, tipY);
     ctx.lineTo(tipX, tipY);
-    ctx.quadraticCurveTo(tipX * 0.5, tipY * 0.6, -corkR * 0.3, baseY + 0.8);
+    ctx.quadraticCurveTo(tipX * 0.5, tipY * 0.6, -corkR * 0.3, baseY + 0.8 * scale);
     ctx.closePath();
     ctx.fill();
 
     // feather spine
     ctx.strokeStyle = "rgba(180, 180, 190, 0.5)";
-    ctx.lineWidth = 0.5;
+    ctx.lineWidth = 0.5 * scale;
     ctx.beginPath();
     ctx.moveTo(-corkR * 0.3, baseY);
     ctx.quadraticCurveTo(tipX * 0.5, tipY * 0.6, tipX, tipY);
@@ -520,21 +541,21 @@ function drawShuttle(ctx: CanvasRenderingContext2D, sh: Shuttle) {
 
   /* ── skirt rim (the ring where feathers meet the cork) ── */
   ctx.strokeStyle = "#c0c0c0";
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 1.5 * scale;
   ctx.beginPath();
-  ctx.ellipse(-corkR * 0.3, 0, 2, corkR * 0.65, 0, 0, Math.PI * 2);
+  ctx.ellipse(-corkR * 0.3, 0, 2 * scale, corkR * 0.65, 0, 0, Math.PI * 2);
   ctx.stroke();
 
   /* ── skirt tip ring ── */
   ctx.strokeStyle = "rgba(200, 200, 210, 0.4)";
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 1 * scale;
   ctx.beginPath();
-  ctx.ellipse(-featherLen, 0, 2, skirtSpread, 0, 0, Math.PI * 2);
+  ctx.ellipse(-featherLen, 0, 2 * scale, skirtSpread, 0, 0, Math.PI * 2);
   ctx.stroke();
 
   /* ── cork base ── */
   // main cork
-  const corkGrad = ctx.createRadialGradient(1, -1, 0, 0, 0, corkR);
+  const corkGrad = ctx.createRadialGradient(1 * scale, -1 * scale, 0, 0, 0, corkR);
   corkGrad.addColorStop(0, "#ffffff");
   corkGrad.addColorStop(0.4, "#e2e8f0");
   corkGrad.addColorStop(1, "#94a3b8");
@@ -545,7 +566,7 @@ function drawShuttle(ctx: CanvasRenderingContext2D, sh: Shuttle) {
 
   // cork rim
   ctx.strokeStyle = "#cbd5e1";
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 1 * scale;
   ctx.beginPath();
   ctx.arc(0, 0, corkR, 0, Math.PI * 2);
   ctx.stroke();
@@ -553,18 +574,18 @@ function drawShuttle(ctx: CanvasRenderingContext2D, sh: Shuttle) {
   // cork highlight
   ctx.fillStyle = "rgba(255, 255, 255, 0.45)";
   ctx.beginPath();
-  ctx.arc(1.5, -2, corkR * 0.4, 0, Math.PI * 2);
+  ctx.arc(1.5 * scale, -2 * scale, corkR * 0.4, 0, Math.PI * 2);
   ctx.fill();
 
   /* ── motion glow ── */
   const speed = Math.hypot(sh.vx, sh.vy);
-  if (speed > 3) {
-    ctx.globalAlpha = Math.min(0.35, speed * 0.025);
+  if (speed > 3 * scale) {
+    ctx.globalAlpha = Math.min(0.35, speed * (0.025 / scale));
     ctx.shadowColor = "#ffffff";
-    ctx.shadowBlur = 16;
+    ctx.shadowBlur = 16 * scale;
     ctx.fillStyle = "#ffffff";
     ctx.beginPath();
-    ctx.arc(0, 0, corkR + 2, 0, Math.PI * 2);
+    ctx.arc(0, 0, corkR + 2 * scale, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
   }
@@ -577,58 +598,61 @@ function drawPlayer(
   p: Player,
   gy: number,
   isPlayer: boolean,
+  scale: number,
 ) {
   const x = p.x;
   const y = p.y;
+  const pW = PLAYER_W * scale;
+  const pH = PLAYER_H * scale;
 
   // shadow
   ctx.save();
   ctx.fillStyle = "rgba(0,0,0,0.25)";
   ctx.beginPath();
-  ctx.ellipse(x, gy, 20, 6, 0, 0, Math.PI * 2);
+  ctx.ellipse(x, gy, 20 * scale, 6 * scale, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
   // body
   ctx.fillStyle = p.color;
-  const bodyX = x - PLAYER_W / 2;
-  const bodyY = y + 20;
-  const bodyW = PLAYER_W;
-  const bodyH = PLAYER_H - 20;
-  roundRect(ctx, bodyX, bodyY, bodyW, bodyH, 8);
+  const bodyX = x - pW / 2;
+  const bodyY = y + 20 * scale;
+  const bodyW = pW;
+  const bodyH = pH - 20 * scale;
+  roundRect(ctx, bodyX, bodyY, bodyW, bodyH, 8 * scale);
 
   // head
   ctx.fillStyle = "#fde68a";
   ctx.beginPath();
-  ctx.arc(x, y + 14, 14, 0, Math.PI * 2);
+  ctx.arc(x, y + 14 * scale, 14 * scale, 0, Math.PI * 2);
   ctx.fill();
 
   // eyes
   ctx.fillStyle = "#1e293b";
-  const eyeOffX = isPlayer ? 4 : -4;
+  const eyeOffX = (isPlayer ? 4 : -4) * scale;
   ctx.beginPath();
-  ctx.arc(x + eyeOffX - 3, y + 12, 2, 0, Math.PI * 2);
-  ctx.arc(x + eyeOffX + 5, y + 12, 2, 0, Math.PI * 2);
+  ctx.arc(x + eyeOffX - 3 * scale, y + 12 * scale, 2 * scale, 0, Math.PI * 2);
+  ctx.arc(x + eyeOffX + 5 * scale, y + 12 * scale, 2 * scale, 0, Math.PI * 2);
   ctx.fill();
 
   // racket (longer handle + bigger head)
   const racketDir = isPlayer ? 1 : -1;
-  const racketX = x + racketDir * 36;
-  const racketY = p.isHitting ? y + 4 : y + 26;
+  const racketX = x + racketDir * 36 * scale;
+  const racketY = p.isHitting ? y + 4 * scale : y + 26 * scale;
   ctx.strokeStyle = p.racketColor;
-  ctx.lineWidth = 3.5;
+  ctx.lineWidth = 3.5 * scale;
   ctx.beginPath();
-  ctx.moveTo(x + racketDir * 16, y + 30);
+  ctx.moveTo(x + racketDir * 16 * scale, y + 30 * scale);
   ctx.lineTo(racketX, racketY);
   ctx.stroke();
   // racket head
   ctx.fillStyle = p.racketColor;
   ctx.beginPath();
   ctx.ellipse(
-    racketX + racketDir * 10,
-    racketY - 5,
-    13,
-    18,
+    racketX + racketDir * 10 * scale,
+    racketY - 5 * scale,
+    13 * scale,
+    18 * scale,
     racketDir * 0.3,
     0,
     Math.PI * 2,
@@ -636,19 +660,19 @@ function drawPlayer(
   ctx.fill();
   // racket strings
   ctx.strokeStyle = "rgba(255,255,255,0.5)";
-  ctx.lineWidth = 0.5;
-  for (let i = -10; i <= 10; i += 4) {
+  ctx.lineWidth = 0.5 * scale;
+  for (let i = -10 * scale; i <= 10 * scale; i += 4 * scale) {
     ctx.beginPath();
-    ctx.moveTo(racketX + racketDir * 10, racketY - 5 + i);
-    ctx.lineTo(racketX + racketDir * 10 + racketDir * 11, racketY - 5 + i);
+    ctx.moveTo(racketX + racketDir * 10 * scale, racketY - 5 * scale + i);
+    ctx.lineTo(racketX + racketDir * 10 * scale + racketDir * 11 * scale, racketY - 5 * scale + i);
     ctx.stroke();
   }
 
   // label
   ctx.fillStyle = "rgba(255,255,255,0.8)";
-  ctx.font = "bold 11px Inter, system-ui, sans-serif";
+  ctx.font = `bold ${Math.round(11 * scale)}px Inter, system-ui, sans-serif`;
   ctx.textAlign = "center";
-  ctx.fillText(isPlayer ? "YOU" : "AI", x, y - 4);
+  ctx.fillText(isPlayer ? "YOU" : "AI", x, y - 4 * scale);
 }
 
 function roundRect(
@@ -673,29 +697,34 @@ function roundRect(
   ctx.fill();
 }
 
-function drawHUD(ctx: CanvasRenderingContext2D, s: GameState, W: number) {
+function drawHUD(
+  ctx: CanvasRenderingContext2D,
+  s: GameState,
+  W: number,
+  scale: number,
+) {
   /* score panel */
-  const panelW = 260;
-  const panelH = 50;
+  const panelW = 260 * scale;
+  const panelH = 50 * scale;
   const panelX = (W - panelW) / 2;
-  const panelY = 16;
+  const panelY = 16 * scale;
 
   ctx.save();
   ctx.fillStyle = "rgba(15, 23, 42, 0.75)";
   ctx.beginPath();
-  ctx.roundRect(panelX, panelY, panelW, panelH, 16);
+  ctx.roundRect(panelX, panelY, panelW, panelH, 16 * scale);
   ctx.fill();
   ctx.strokeStyle = "rgba(148, 163, 184, 0.3)";
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 1 * scale;
   ctx.stroke();
 
-  ctx.font = "bold 22px Inter, system-ui, sans-serif";
+  ctx.font = `bold ${Math.round(22 * scale)}px Inter, system-ui, sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
 
   // player score
   ctx.fillStyle = "#6ee7b7";
-  ctx.fillText(String(s.playerScore), panelX + 70, panelY + panelH / 2);
+  ctx.fillText(String(s.playerScore), panelX + 70 * scale, panelY + panelH / 2);
 
   // divider
   ctx.fillStyle = "rgba(255,255,255,0.35)";
@@ -703,19 +732,19 @@ function drawHUD(ctx: CanvasRenderingContext2D, s: GameState, W: number) {
 
   // ai score
   ctx.fillStyle = "#f9a8d4";
-  ctx.fillText(String(s.aiScore), panelX + panelW - 70, panelY + panelH / 2);
+  ctx.fillText(String(s.aiScore), panelX + panelW - 70 * scale, panelY + panelH / 2);
 
   ctx.restore();
 
   /* controls hint */
   ctx.save();
   ctx.fillStyle = "rgba(255,255,255,0.25)";
-  ctx.font = "12px Inter, system-ui, sans-serif";
+  ctx.font = `${Math.round(12 * scale)}px Inter, system-ui, sans-serif`;
   ctx.textAlign = "center";
   ctx.fillText(
     "Arrows: Move  ·  Up: Jump  ·  Space: Hit",
     W / 2,
-    panelY + panelH + 20,
+    panelY + panelH + 20 * scale,
   );
   ctx.restore();
 
@@ -724,9 +753,9 @@ function drawHUD(ctx: CanvasRenderingContext2D, s: GameState, W: number) {
     ctx.save();
     const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 300);
     ctx.fillStyle = `rgba(250, 204, 21, ${0.5 + pulse * 0.5})`;
-    ctx.font = "bold 18px Inter, system-ui, sans-serif";
+    ctx.font = `bold ${Math.round(18 * scale)}px Inter, system-ui, sans-serif`;
     ctx.textAlign = "center";
-    ctx.fillText("Press SPACE to serve", W / 2, panelY + panelH + 48);
+    ctx.fillText("Press SPACE to serve", W / 2, panelY + panelH + 48 * scale);
     ctx.restore();
   }
 }
@@ -751,10 +780,38 @@ const DIFFICULTY_CONFIG: Record<
     lookAhead: number;
   }
 > = {
-  easy:       { posError: 55, lerpFactor: 0.06, hitMult: 0.75, jumpEagerness: 60, hitRange: 90,  lookAhead: 0  },
-  medium:     { posError: 20, lerpFactor: 0.12, hitMult: 1.0,  jumpEagerness: 40, hitRange: 75,  lookAhead: 8  },
-  hard:       { posError: 25, lerpFactor: 0.13, hitMult: 1.0,  jumpEagerness: 42, hitRange: 72,  lookAhead: 7  },
-  super_hard: { posError: 2,  lerpFactor: 0.28, hitMult: 1.4,  jumpEagerness: 14, hitRange: 48,  lookAhead: 26 },
+  easy: {
+    posError: 55,
+    lerpFactor: 0.06,
+    hitMult: 0.75,
+    jumpEagerness: 60,
+    hitRange: 90,
+    lookAhead: 0,
+  },
+  medium: {
+    posError: 20,
+    lerpFactor: 0.12,
+    hitMult: 1.0,
+    jumpEagerness: 40,
+    hitRange: 75,
+    lookAhead: 8,
+  },
+  hard: {
+    posError: 25,
+    lerpFactor: 0.13,
+    hitMult: 1.0,
+    jumpEagerness: 42,
+    hitRange: 72,
+    lookAhead: 7,
+  },
+  super_hard: {
+    posError: 2,
+    lerpFactor: 0.28,
+    hitMult: 1.4,
+    jumpEagerness: 14,
+    hitRange: 48,
+    lookAhead: 26,
+  },
 };
 
 export default function GamePage() {
@@ -765,6 +822,7 @@ export default function GamePage() {
   const rafRef = useRef<number>(0);
   const difficultyRef = useRef<Difficulty>("hard");
   const [started, setStarted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [difficulty, setDifficulty] = useState<Difficulty>("hard");
   const [overlay, setOverlay] = useState<{
     show: boolean;
@@ -772,6 +830,31 @@ export default function GamePage() {
     pScore: number;
     aScore: number;
   }>({ show: false, winner: "", pScore: 0, aScore: 0 });
+
+  /* ── detection ── */
+  useEffect(() => {
+    const checkMobile = () => {
+      // Check if the primary pointer is 'coarse' (touch) and there is no 'fine' pointer (mouse/trackpad)
+      // This is a reliable way to detect devices that are strictly touch-based (phones/tablets without accessories)
+      const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
+      const hasPrecisionPointer = window.matchMedia("(pointer: fine)").matches;
+
+      // If they have a mouse or trackpad, we assume they have a keyboard (laptop/desktop/iPad with keyboard)
+      setIsMobile(isTouchDevice && !hasPrecisionPointer);
+    };
+    checkMobile();
+    // Also listen for changes (e.g. plugging in a mouse)
+    const fineQuery = window.matchMedia("(pointer: fine)");
+    const coarseQuery = window.matchMedia("(pointer: coarse)");
+
+    fineQuery.addEventListener("change", checkMobile);
+    coarseQuery.addEventListener("change", checkMobile);
+
+    return () => {
+      fineQuery.removeEventListener("change", checkMobile);
+      coarseQuery.removeEventListener("change", checkMobile);
+    };
+  }, []);
 
   /* ── resize ── */
   const resize = useCallback(() => {
@@ -873,135 +956,183 @@ export default function GamePage() {
 
   /* ──────── JSX ──────── */
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#0f172a] select-none">
+    <div className="relative w-screen h-screen overflow-hidden bg-[#0a0a0a] select-none">
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
 
       {/* start / game-over overlay */}
       {(!started || overlay.show) && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-6 rounded-3xl bg-slate-900/80 px-12 py-10 shadow-2xl border border-slate-700/50 max-w-sm w-full">
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-[rgb(10,10,10,0.5)] backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-6 rounded-3xl bg-[rgb(10,10,10,0.8)] px-12 py-10 shadow-2xl border border-slate-700/50 max-w-lg w-full">
             <BrandLogo hideText className="scale-125 mb-4" />
-            <h1 className="text-3xl font-bold tracking-tight text-white text-center">
-              {overlay.show ? overlay.winner : "All England Smash"}
-            </h1>
 
-            {overlay.show && (
-              <div className="flex items-center gap-6 text-xl font-semibold">
-                <span className="text-emerald-300">{overlay.pScore}</span>
-                <span className="text-slate-500">—</span>
-                <span className="text-pink-300">{overlay.aScore}</span>
-              </div>
-            )}
-
-            {!started && !overlay.show && (
-              <>
-                <p className="text-sm text-slate-400 text-center leading-relaxed">
-                  Arrows to move · Up to jump · Space to hit · ESC to stop
-                  <br />
-                  First to {WIN_SCORE} wins!
-                </p>
-
-                {/* Difficulty selector */}
-                <div className="w-full flex flex-col items-center gap-3">
-                  <p className="text-xs font-medium text-slate-500 uppercase tracking-widest">
-                    Select Difficulty
+            {isMobile ? (
+              <div className="flex flex-col items-center gap-6 text-center">
+                <h1 className="text-3xl font-bold tracking-tight text-white">
+                  Device Not Supported
+                </h1>
+                <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-6">
+                  <p className="text-lg text-slate-300 leading-relaxed font-medium">
+                    Sorry, this game currently works on <br />
+                    <span className="text-emerald-400 font-black tracking-wide uppercase">
+                      with keyboards
+                    </span>
+                    <br /> only.
                   </p>
-                  <div className="grid grid-cols-2 gap-2 w-full">
-                    {([
-                      {
-                        key: "easy" as Difficulty,
-                        label: "Easy",
-                        from: "from-green-500",
-                        to: "to-emerald-400",
-                        ringColor: "ring-green-400",
-                        glowColor: "shadow-green-500/50",
-                      },
-                      {
-                        key: "medium" as Difficulty,
-                        label: "Medium",
-                        from: "from-amber-400",
-                        to: "to-orange-400",
-                        ringColor: "ring-amber-400",
-                        glowColor: "shadow-amber-400/50",
-                      },
-                      {
-                        key: "hard" as Difficulty,
-                        label: "Hard",
-                        from: "from-rose-500",
-                        to: "to-pink-500",
-                        ringColor: "ring-rose-400",
-                        glowColor: "shadow-rose-500/50",
-                      },
-                      {
-                        key: "super_hard" as Difficulty,
-                        label: "Super Hard",
-                        from: "from-violet-600",
-                        to: "to-purple-500",
-                        ringColor: "ring-violet-400",
-                        glowColor: "shadow-violet-500/50",
-                      },
-                    ] as const).map(({ key, label, from, to, ringColor, glowColor }) => {
-                      const selected = difficulty === key;
-                      return (
-                        <button
-                          key={key}
-                          id={`difficulty-${key}`}
-                          onClick={() => setDifficulty(key)}
-                          className={[
-                            "relative py-2.5 rounded-full font-semibold text-sm text-white transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer shadow-lg flex items-center justify-center gap-1.5",
-                            `bg-gradient-to-r ${from} ${to}`,
-                            selected
-                              ? `ring-2 ${ringColor} scale-105 shadow-lg ${glowColor}`
-                              : "opacity-50 hover:opacity-75",
-                          ].join(" ")}
-                        >
-                          {/* checkmark icon */}
-                          <span
-                            className={[
-                              "transition-all duration-200 overflow-hidden",
-                              selected ? "w-4 opacity-100" : "w-0 opacity-0",
-                            ].join(" ")}
-                          >
-                            <svg
-                              viewBox="0 0 16 16"
-                              fill="none"
-                              className="w-4 h-4 shrink-0"
-                            >
-                              <path
-                                d="M3 8l3.5 3.5L13 4"
-                                stroke="white"
-                                strokeWidth="2.2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </span>
-                          {label}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Start Match button */}
-                  <button
-                    id="start-game-btn"
-                    onClick={() => startGame(difficulty)}
-                    className="w-full mt-1 px-8 py-3 rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 text-white font-semibold text-lg shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
-                  >
-                    Start Match
-                  </button>
                 </div>
+                <Link
+                  href="/game"
+                  className="w-full mt-2 px-8 py-4 rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 text-white font-bold text-lg shadow-lg hover:scale-105 transition-all"
+                >
+                  Return to Lobby
+                </Link>
+              </div>
+            ) : (
+              <>
+                <h1 className="text-3xl font-bold tracking-tight text-white text-center">
+                  {overlay.show ? overlay.winner : "All England Smash"}
+                </h1>
+
+                {overlay.show && (
+                  <div className="flex items-center gap-6 text-xl font-semibold">
+                    <span className="text-emerald-300">{overlay.pScore}</span>
+                    <span className="text-slate-500">—</span>
+                    <span className="text-pink-300">{overlay.aScore}</span>
+                  </div>
+                )}
+
+                {!started && !overlay.show && (
+                  <>
+                    <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-center">
+                      <p className="text-sm font-medium text-slate-300 leading-relaxed">
+                        <span className="text-emerald-400 font-bold">
+                          Arrows
+                        </span>{" "}
+                        to move ·{" "}
+                        <span className="text-emerald-400 font-bold">Up</span>{" "}
+                        to jump ·{" "}
+                        <span className="text-emerald-400 font-bold">
+                          Space
+                        </span>{" "}
+                        to hit ·{" "}
+                        <span className="text-emerald-400 font-bold">ESC</span>{" "}
+                        to stop
+                        <br />
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-slate-500 mt-3 block font-black">
+                          First to{" "}
+                          <span className="text-white">{WIN_SCORE}</span> wins!
+                        </span>
+                      </p>
+                    </div>
+
+                    {/* Difficulty selector */}
+                    <div className="w-full flex flex-col items-center gap-3">
+                      <p className="text-xs font-medium text-slate-500 uppercase tracking-widest">
+                        Select Difficulty
+                      </p>
+                      <div className="grid grid-cols-2 gap-2 w-full">
+                        {(
+                          [
+                            {
+                              key: "easy" as Difficulty,
+                              label: "Easy",
+                              from: "from-green-500",
+                              to: "to-emerald-400",
+                              ringColor: "ring-green-400",
+                              glowColor: "shadow-green-500/50",
+                            },
+                            {
+                              key: "medium" as Difficulty,
+                              label: "Medium",
+                              from: "from-amber-400",
+                              to: "to-orange-400",
+                              ringColor: "ring-amber-400",
+                              glowColor: "shadow-amber-400/50",
+                            },
+                            {
+                              key: "hard" as Difficulty,
+                              label: "Hard",
+                              from: "from-rose-500",
+                              to: "to-pink-500",
+                              ringColor: "ring-rose-400",
+                              glowColor: "shadow-rose-500/50",
+                            },
+                            {
+                              key: "super_hard" as Difficulty,
+                              label: "Super Hard",
+                              from: "from-violet-600",
+                              to: "to-purple-500",
+                              ringColor: "ring-violet-400",
+                              glowColor: "shadow-violet-500/50",
+                            },
+                          ] as const
+                        ).map(
+                          ({ key, label, from, to, ringColor, glowColor }) => {
+                            const selected = difficulty === key;
+                            return (
+                              <button
+                                key={key}
+                                id={`difficulty-${key}`}
+                                onClick={() => setDifficulty(key)}
+                                className={[
+                                  "relative py-2.5 rounded-full font-semibold text-sm text-white transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer shadow-lg flex items-center justify-center gap-1.5",
+                                  `bg-gradient-to-r ${from} ${to}`,
+                                  selected
+                                    ? `ring-2 ${ringColor} scale-105 shadow-lg ${glowColor}`
+                                    : "opacity-50 hover:opacity-75",
+                                ].join(" ")}
+                              >
+                                {/* checkmark icon */}
+                                <span
+                                  className={[
+                                    "transition-all duration-200 overflow-hidden",
+                                    selected
+                                      ? "w-4 opacity-100"
+                                      : "w-0 opacity-0",
+                                  ].join(" ")}
+                                >
+                                  <svg
+                                    viewBox="0 0 16 16"
+                                    fill="none"
+                                    className="w-4 h-4 shrink-0"
+                                  >
+                                    <path
+                                      d="M3 8l3.5 3.5L13 4"
+                                      stroke="white"
+                                      strokeWidth="2.2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                  </svg>
+                                </span>
+                                {label}
+                              </button>
+                            );
+                          },
+                        )}
+                      </div>
+
+                      {/* Start Match button */}
+                      <button
+                        id="start-game-btn"
+                        onClick={() => startGame(difficulty)}
+                        className="w-full mt-1 px-8 py-3 rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 text-white font-semibold text-lg shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
+                      >
+                        Start Match
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                <Link
+                  href="/game"
+                  className="px-8 py-3 rounded-full bg-white/5 border border-white/10 text-white font-medium text-base hover:bg-white/10 transition-all duration-200 hover:scale-105 active:scale-95"
+                >
+                  {overlay.show || started === false
+                    ? "Return to Lobby"
+                    : "Exit to Lobby"}
+                </Link>
               </>
             )}
-
-            <Link
-              href="/game"
-              className="px-8 py-3 rounded-full bg-white/5 border border-white/10 text-white font-medium text-base hover:bg-white/10 transition-all duration-200 hover:scale-105 active:scale-95"
-            >
-              {overlay.show || started === false
-                ? "Return to Lobby"
-                : "Exit to Lobby"}
-            </Link>
           </div>
         </div>
       )}

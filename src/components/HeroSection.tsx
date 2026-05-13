@@ -2,17 +2,33 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useRef, useState, useEffect } from "react";
+import PageLoader from "./PageLoader";
 
 export default function HeroSection() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+
+  useEffect(() => {
+    // If video is already loaded from cache
+    if (videoRef.current && videoRef.current.readyState >= 3) {
+      setIsVideoLoaded(true);
+    }
+  }, []);
+
   return (
     <section className="relative h-screen w-full overflow-hidden">
+      <PageLoader isDone={isVideoLoaded} />
+
       {/* Video Background */}
       <div className="absolute inset-0 z-0">
         <video
+          ref={videoRef}
           autoPlay
           muted
           loop
           playsInline
+          onLoadedData={() => setIsVideoLoaded(true)}
           className="h-full w-full object-cover"
           poster="/hero.png"
         >
@@ -31,13 +47,24 @@ export default function HeroSection() {
         <motion.div
           initial={{ x: "-100%" }}
           animate={{ x: "200%" }}
-          transition={{ duration: 3, repeat: Infinity, repeatDelay: 5, ease: "easeInOut" }}
+          transition={{
+            duration: 3,
+            repeat: Infinity,
+            repeatDelay: 5,
+            ease: "easeInOut",
+          }}
           className="absolute top-1/4 left-0 w-1/2 h-px bg-gradient-to-r from-transparent via-accent to-transparent opacity-60"
         />
         <motion.div
           initial={{ x: "200%" }}
           animate={{ x: "-100%" }}
-          transition={{ duration: 3, repeat: Infinity, repeatDelay: 4, ease: "easeInOut", delay: 2 }}
+          transition={{
+            duration: 3,
+            repeat: Infinity,
+            repeatDelay: 4,
+            ease: "easeInOut",
+            delay: 2,
+          }}
           className="absolute top-3/4 left-0 w-1/2 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent opacity-40"
         />
       </div>
@@ -67,7 +94,11 @@ export default function HeroSection() {
           <motion.h1
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.4, ease: [0.25, 0.4, 0.25, 1] }}
+            transition={{
+              duration: 0.8,
+              delay: 0.4,
+              ease: [0.25, 0.4, 0.25, 1],
+            }}
             className="text-5xl sm:text-7xl lg:text-8xl xl:text-9xl font-black tracking-tighter text-white leading-[0.9] mb-4"
           >
             <span className="block">FEEL THE</span>
@@ -77,7 +108,11 @@ export default function HeroSection() {
           <motion.h1
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.5, ease: [0.25, 0.4, 0.25, 1] }}
+            transition={{
+              duration: 0.8,
+              delay: 0.5,
+              ease: [0.25, 0.4, 0.25, 1],
+            }}
             className="text-5xl sm:text-7xl lg:text-8xl xl:text-9xl font-black tracking-tighter leading-[0.9] mb-6"
           >
             <span className="bg-gradient-to-r from-accent via-emerald-400 to-teal-300 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(34,197,94,0.4)]">
@@ -93,8 +128,8 @@ export default function HeroSection() {
           transition={{ duration: 0.6, delay: 0.7 }}
           className="max-w-2xl text-lg sm:text-xl text-white/70 font-medium leading-relaxed mb-10"
         >
-          Experience the intensity of live sports. Every rally, every smash, every moment of glory.
-          Step onto the virtual court and dominate.
+          Experience the intensity of live sports. Every rally, every smash,
+          every moment of glory. Step onto the virtual court and dominate.
         </motion.p>
 
         {/* CTA Button */}
@@ -109,11 +144,7 @@ export default function HeroSection() {
             className="group relative overflow-hidden rounded-full bg-accent px-10 py-4 text-lg font-bold text-white transition-all duration-300 hover:scale-105 animate-pulse-glow"
           >
             <span className="relative z-10 flex items-center gap-3">
-              <svg
-                className="h-5 w-5"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
               Play Now
@@ -132,16 +163,28 @@ export default function HeroSection() {
           <div className="glass mx-auto max-w-4xl rounded-2xl px-8 py-6">
             <div className="grid grid-cols-3 gap-8 text-center">
               <div>
-                <div className="text-2xl sm:text-3xl font-black text-white">50K+</div>
-                <div className="text-xs sm:text-sm text-white/50 uppercase tracking-wider mt-1">Active Players</div>
+                <div className="text-2xl sm:text-3xl font-black text-white">
+                  50K+
+                </div>
+                <div className="text-xs sm:text-sm text-white/50 uppercase tracking-wider mt-1">
+                  Active Players
+                </div>
               </div>
               <div className="border-x border-white/10">
-                <div className="text-2xl sm:text-3xl font-black text-accent">LIVE</div>
-                <div className="text-xs sm:text-sm text-white/50 uppercase tracking-wider mt-1">Matches Now</div>
+                <div className="text-2xl sm:text-3xl font-black text-accent">
+                  LIVE
+                </div>
+                <div className="text-xs sm:text-sm text-white/50 uppercase tracking-wider mt-1">
+                  Matches Now
+                </div>
               </div>
               <div>
-                <div className="text-2xl sm:text-3xl font-black text-white">24/7</div>
-                <div className="text-xs sm:text-sm text-white/50 uppercase tracking-wider mt-1">Tournament Access</div>
+                <div className="text-2xl sm:text-3xl font-black text-white">
+                  24/7
+                </div>
+                <div className="text-xs sm:text-sm text-white/50 uppercase tracking-wider mt-1">
+                  Tournament Access
+                </div>
               </div>
             </div>
           </div>
@@ -161,8 +204,18 @@ export default function HeroSection() {
           className="flex flex-col items-center gap-2 text-white/40"
         >
           <span className="text-xs uppercase tracking-widest">Scroll</span>
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          <svg
+            className="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 14l-7 7m0 0l-7-7m7 7V3"
+            />
           </svg>
         </motion.div>
       </motion.div>
