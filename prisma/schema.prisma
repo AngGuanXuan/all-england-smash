@@ -1,5 +1,6 @@
 generator client {
   provider   = "prisma-client-js"
+  output     = "../src/generated/client"
   engineType = "library"
 }
 
@@ -14,4 +15,5 @@ model Match {
   playerScore BigInt
   timestamp   DateTime @db.Date
   winner      String
+  difficulty  String?  @default("medium")
 }

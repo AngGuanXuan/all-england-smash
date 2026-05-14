@@ -3,11 +3,18 @@ import BrandLogo from "@/components/BrandLogo";
 import InteractiveScorecard from "@/components/InteractiveScorecard";
 import { getMatches } from "../actions";
 import { randomBytes } from "crypto";
+import TestInsertButton from "@/components/TestInsertButton";
+import DifficultyFilter from "@/components/DifficultyFilter";
+import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
 
-export default async function LobbyPage() {
-  const matches = await getMatches();
+export default async function LobbyPage(props: {
+  searchParams: Promise<{ difficulty?: string }>;
+}) {
+  const searchParams = await props.searchParams;
+  const difficulty = searchParams.difficulty || "all";
+  const matches = await getMatches(difficulty);
   const nextMatchId = randomBytes(12).toString("hex");
 
   // Compute scorecard stats
@@ -17,21 +24,37 @@ export default async function LobbyPage() {
   const winRate =
     totalGames > 0 ? Math.round((playerWins / totalGames) * 100) : 0;
 
-  // Longest winning streak
-  let longestStreak = 0;
-  let currentStreak = 0;
-  for (const m of [...matches].reverse()) {
+  // Human biggest win (largest margin)
+  let humanBiggestWinMatch = null;
+  let maxHumanMargin = -1;
+
+  // AI biggest win (largest margin)
+  let aiBiggestWinMatch = null;
+  let maxAiMargin = -1;
+
+  for (const m of matches) {
     if (m.winner === "Player") {
-      currentStreak++;
-      longestStreak = Math.max(longestStreak, currentStreak);
-    } else {
-      currentStreak = 0;
+      const margin = m.playerScore - m.aiScore;
+      if (margin > maxHumanMargin) {
+        maxHumanMargin = margin;
+        humanBiggestWinMatch = m;
+      }
+    } else if (m.winner === "AI") {
+      const margin = m.aiScore - m.playerScore;
+      if (margin > maxAiMargin) {
+        maxAiMargin = margin;
+        aiBiggestWinMatch = m;
+      }
     }
   }
 
-  // Best score in a single game
-  const bestScore =
-    totalGames > 0 ? Math.max(...matches.map((m) => m.playerScore)) : 0;
+  const humanBiggestWin = humanBiggestWinMatch
+    ? `${humanBiggestWinMatch.playerScore} - ${humanBiggestWinMatch.aiScore}`
+    : "-";
+
+  const aiBiggestWin = aiBiggestWinMatch
+    ? `${aiBiggestWinMatch.playerScore} - ${aiBiggestWinMatch.aiScore}`
+    : "-";
 
   // Last match
   const lastMatch = matches[0] ?? null;
@@ -63,6 +86,8 @@ export default async function LobbyPage() {
             >
               Start New Match
             </Link>
+
+            {/* <TestInsertButton /> */}
           </div>
 
           {/* ── Right: Global Scorecard (Interactive Client Component) ── */}
@@ -71,34 +96,46 @@ export default async function LobbyPage() {
             playerWins={playerWins}
             aiWins={aiWins}
             winRate={winRate}
-            bestScore={bestScore}
-            longestStreak={longestStreak}
+            humanBiggestWin={humanBiggestWin}
+            aiBiggestWin={aiBiggestWin}
           />
         </div>
 
         {/* ── Bottom: Recent Matches ── */}
-        {matches.length > 0 && (
-          <div className="w-full flex flex-col items-center lg:items-start">
-            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-6 flex items-center gap-2">
+        <div className="w-full flex flex-col items-center lg:items-start">
+          <div className="w-full flex items-center justify-between mb-6">
+            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
               <span className="w-1 h-4 bg-emerald-500/50 rounded-full" />
               Recent Match History
             </h3>
+            <Suspense>
+              <DifficultyFilter />
+            </Suspense>
+          </div>
+
+          {matches.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 w-full">
               {matches.slice(0, 5).map((match, idx) => (
                 <div
                   key={match.id || idx}
                   className="flex flex-col p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 group"
                 >
-                  <div className="flex items-center justify-between mb-4">
-                    <span
-                      className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter ${
-                        match.winner === "Player"
-                          ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                          : "bg-pink-500/10 text-pink-400 border border-pink-500/20"
-                      }`}
-                    >
-                      {match.winner === "Player" ? "Victory" : "Defeat"}
-                    </span>
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex flex-col gap-2">
+                      <span
+                        className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter w-fit ${
+                          match.winner === "Player"
+                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                            : "bg-pink-500/10 text-pink-400 border border-pink-500/20"
+                        }`}
+                      >
+                        {match.winner === "Player" ? "Victory" : "Defeat"}
+                      </span>
+                      <span className="text-[12px] font-bold uppercase tracking-widest text-slate-300 flex items-center gap-1.5 ml-1">
+                        <span className="w-1 h-1 rounded-full bg-slate-500" />
+                        {match.difficulty?.replace("_", " ")}
+                      </span>
+                    </div>
                     <span className="text-[10px] font-mono text-slate-400">
                       {new Date(match.timestamp).toLocaleDateString(undefined, {
                         month: "short",
@@ -130,8 +167,15 @@ export default async function LobbyPage() {
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="w-full py-12 rounded-3xl bg-white/5 border border-dashed border-white/10 flex flex-col items-center justify-center text-slate-500">
+              <span className="text-3xl mb-2">🏸</span>
+              <p className="font-medium">
+                No matches found for this difficulty.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

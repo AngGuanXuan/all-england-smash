@@ -1,0 +1,19 @@
+generator client {
+  provider   = "prisma-client-js"
+  output     = "../src/generated/client"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Match {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  aiScore     BigInt
+  playerScore BigInt
+  timestamp   DateTime @db.Date
+  winner      String
+  difficulty  String?  @default("medium")
+}

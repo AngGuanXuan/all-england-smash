@@ -850,9 +850,9 @@ const DIFFICULTY_CONFIG: Record<
   hard: {
     posError: 15,
     lerpFactor: 0.4,
-    hitMult: 1.3,
-    jumpEagerness: 35,
-    hitRange: 70,
+    hitMult: 1,
+    jumpEagerness: 25,
+    hitRange: 50,
     lookAhead: 20,
     maxSpeedMult: 2,
   },
@@ -883,6 +883,12 @@ export default function GamePage() {
     pScore: number;
     aScore: number;
   }>({ show: false, winner: "", pScore: 0, aScore: 0 });
+  const [saving, setSaving] = useState(false);
+  const hasSavedMatchRef = useRef(false);
+
+  useEffect(() => {
+    console.log("Match page params:", params);
+  }, [params]);
 
   /* ── detection ── */
   useEffect(() => {
@@ -955,6 +961,8 @@ export default function GamePage() {
     stateRef.current = createInitialState(c.width, c.height);
     setStarted(true);
     setOverlay({ show: false, winner: "", pScore: 0, aScore: 0 });
+    setSaving(false);
+    hasSavedMatchRef.current = false;
   }, []);
 
   /* ── game loop ── */
@@ -989,15 +997,6 @@ export default function GamePage() {
           aScore: s.aiScore,
         });
 
-        const mId = typeof params.id === "string" ? params.id : "unknown";
-        saveMatch({
-          id: mId,
-          playerScore: s.playerScore,
-          aiScore: s.aiScore,
-          winner: s.winner.includes("You") ? "Player" : "AI",
-          timestamp: new Date().toISOString(),
-        }).catch(console.error);
-
         return; // stop loop
       }
 
@@ -1007,6 +1006,45 @@ export default function GamePage() {
     rafRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafRef.current);
   }, [started, params.id]);
+
+  useEffect(() => {
+    if (overlay.show && !hasSavedMatchRef.current) {
+      const s = stateRef.current;
+      if (!s) return;
+
+      hasSavedMatchRef.current = true;
+      const mId = typeof params.id === "string" ? params.id : "unknown";
+
+      console.log(">>> [CLIENT] Game Over detected. Starting save process...", {
+        mId,
+        pScore: s.playerScore,
+        aScore: s.aiScore,
+        difficulty: difficultyRef.current,
+      });
+
+      setSaving(true);
+      saveMatch({
+        id: mId,
+        playerScore: s.playerScore,
+        aiScore: s.aiScore,
+        winner: s.winner.includes("You") ? "Player" : "AI",
+        timestamp: new Date().toISOString(),
+        difficulty: difficultyRef.current,
+      })
+        .then((res) => {
+          console.log(">>> [CLIENT] Save result received:", res);
+          if (!res.success) {
+            console.error(">>> [CLIENT] Save failed:", res.message);
+          }
+        })
+        .catch((err) => {
+          console.error(">>> [CLIENT] Save fatal error:", err);
+        })
+        .finally(() => {
+          setSaving(false);
+        });
+    }
+  }, [overlay.show, params.id]);
 
   /* ──────── JSX ──────── */
   return (
@@ -1047,10 +1085,17 @@ export default function GamePage() {
                 </h1>
 
                 {overlay.show && (
-                  <div className="flex items-center gap-6 text-xl font-semibold">
-                    <span className="text-emerald-300">{overlay.pScore}</span>
-                    <span className="text-slate-500">—</span>
-                    <span className="text-pink-300">{overlay.aScore}</span>
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="flex items-center gap-6 text-xl font-semibold">
+                      <span className="text-emerald-300">{overlay.pScore}</span>
+                      <span className="text-slate-500">—</span>
+                      <span className="text-pink-300">{overlay.aScore}</span>
+                    </div>
+                    {saving && (
+                      <span className="text-xs text-amber-400 animate-pulse font-bold uppercase tracking-widest mt-2">
+                        Saving results...
+                      </span>
+                    )}
                   </div>
                 )}
 
@@ -1083,7 +1128,7 @@ export default function GamePage() {
                       <p className="text-xs font-medium text-slate-500 uppercase tracking-widest">
                         Select Difficulty
                       </p>
-                      <div className="grid grid-cols-2 gap-2 w-full">
+                      <div className="grid grid-cols-2 gap-4 w-full">
                         {(
                           [
                             {
@@ -1179,8 +1224,14 @@ export default function GamePage() {
 
                 <Link
                   href="/game"
-                  className="px-8 py-3 rounded-full bg-white/5 border border-white/10 text-white font-medium text-base hover:bg-white/10 transition-all duration-200 hover:scale-105 active:scale-95"
+                  className={[
+                    "px-8 py-3 rounded-full bg-white/5 border border-white/10 text-white font-medium text-base hover:bg-white/10 transition-all duration-200 hover:scale-105 active:scale-95 flex items-center gap-2",
+                    saving ? "opacity-50 pointer-events-none" : "",
+                  ].join(" ")}
                 >
+                  {saving && (
+                    <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  )}
                   {overlay.show || started === false
                     ? "Return to Lobby"
                     : "Exit to Lobby"}

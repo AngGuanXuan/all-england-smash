@@ -7,8 +7,8 @@ interface InteractiveScorecardProps {
   playerWins: number;
   aiWins: number;
   winRate: number;
-  bestScore: number;
-  longestStreak: number;
+  humanBiggestWin: number | string;
+  aiBiggestWin: number | string;
 }
 
 export default function InteractiveScorecard({
@@ -16,8 +16,8 @@ export default function InteractiveScorecard({
   playerWins,
   aiWins,
   winRate,
-  bestScore,
-  longestStreak,
+  humanBiggestWin,
+  aiBiggestWin,
 }: InteractiveScorecardProps) {
   const [rotate, setRotate] = useState({ x: 0, y: 0 });
   const cardRef = useRef<HTMLDivElement>(null);
@@ -107,18 +107,18 @@ export default function InteractiveScorecard({
               </div>
               <div className="bg-white/5 border border-white/8 rounded-none p-5 flex flex-col gap-1 [transform:translateZ(40px)] shadow-lg transition-all hover:bg-teal-500/10 hover:[transform:translateZ(60px)_scale(1.05)] hover:shadow-[-8px_8px_0px_rgba(19,78,74,1)]">
                 <span className="text-slate-500 text-xs font-semibold tracking-widest uppercase text-teal-300">
-                  Best Score
+                  Human Biggest Win
                 </span>
-                <span className="text-4xl font-black text-teal-300">
-                  {bestScore}
+                <span className="text-3xl font-black text-teal-300">
+                  {humanBiggestWin}
                 </span>
               </div>
               <div className="bg-white/5 border border-white/8 rounded-none p-5 flex flex-col gap-1 [transform:translateZ(40px)] shadow-lg transition-all hover:bg-amber-500/10 hover:[transform:translateZ(60px)_scale(1.05)] hover:shadow-[8px_8px_0px_rgba(120,53,15,1)]">
                 <span className="text-slate-500 text-xs font-semibold tracking-widest uppercase text-amber-400">
-                  Longest Streak
+                  AI Biggest Win
                 </span>
-                <span className="text-4xl font-black text-amber-400">
-                  {longestStreak}🔥
+                <span className="text-3xl font-black text-amber-400">
+                  {aiBiggestWin}
                 </span>
               </div>
             </div>
